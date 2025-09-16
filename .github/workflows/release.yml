@@ -1,0 +1,33 @@
+name: Create Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+      
+    - name: Create plugin zip
+      run: |
+        # Create zip file excluding unnecessary files
+        zip -r thrive-mautic-integration.zip . \
+          -x "*.git*" \
+          -x "*.github*" \
+          -x "*.md" \
+          -x "*.yml" \
+          -x "node_modules/*" \
+          -x "*.log"
+    
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: thrive-mautic-integration.zip
+        generate_release_notes: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
