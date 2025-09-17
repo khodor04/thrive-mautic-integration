@@ -54,10 +54,87 @@ add_action('admin_menu', function() {
         'manage_options',
         'thrive-mautic-dashboard',
         function() {
+            // Get statistics
+            $stats = array(
+                'today_signups' => 0,
+                'total_signups' => 0,
+                'success_rate' => 0,
+                'pending_count' => 0,
+                'failed_count' => 0
+            );
+            
+            // Get Mautic connection status
+            $mautic_status = 'Not configured';
+            $mautic_class = 'error';
+            
+            if (class_exists('ThriveMautic\\MauticAPI')) {
+                $api = new ThriveMautic\MauticAPI();
+                $connection_test = $api->test_connection();
+                
+                if ($connection_test['success']) {
+                    $mautic_status = 'Connected';
+                    $mautic_class = 'success';
+                } else {
+                    $mautic_status = 'Connection failed: ' . $connection_test['message'];
+                    $mautic_class = 'error';
+                }
+            }
+            
             echo '<div class="wrap">';
             echo '<h1>Thrive-Mautic Dashboard</h1>';
-            echo '<p>Plugin is working! Version ' . THRIVE_MAUTIC_VERSION . '</p>';
-            echo '<p>All classes loaded successfully!</p>';
+            
+            // Mautic Connection Status
+            echo '<div class="notice notice-' . $mautic_class . ' inline">';
+            echo '<p><strong>Mautic Status:</strong> ' . esc_html($mautic_status) . '</p>';
+            echo '</div>';
+            
+            // Statistics Cards
+            echo '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin: 20px 0;">';
+            
+            echo '<div class="stats-card" style="background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">';
+            echo '<h3>Today\'s Signups</h3>';
+            echo '<div style="font-size: 32px; font-weight: bold; color: #27ae60;">' . $stats['today_signups'] . '</div>';
+            echo '</div>';
+            
+            echo '<div class="stats-card" style="background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">';
+            echo '<h3>Total Signups</h3>';
+            echo '<div style="font-size: 32px; font-weight: bold; color: #3498db;">' . $stats['total_signups'] . '</div>';
+            echo '</div>';
+            
+            echo '<div class="stats-card" style="background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">';
+            echo '<h3>Success Rate</h3>';
+            echo '<div style="font-size: 32px; font-weight: bold; color: #27ae60;">' . $stats['success_rate'] . '%</div>';
+            echo '</div>';
+            
+            echo '<div class="stats-card" style="background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">';
+            echo '<h3>Pending</h3>';
+            echo '<div style="font-size: 32px; font-weight: bold; color: #f39c12;">' . $stats['pending_count'] . '</div>';
+            echo '</div>';
+            
+            echo '<div class="stats-card" style="background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">';
+            echo '<h3>Failed</h3>';
+            echo '<div style="font-size: 32px; font-weight: bold; color: #e74c3c;">' . $stats['failed_count'] . '</div>';
+            echo '</div>';
+            
+            echo '</div>';
+            
+            // Quick Actions
+            echo '<div style="background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin: 20px 0;">';
+            echo '<h2>Quick Actions</h2>';
+            echo '<div style="display: flex; gap: 10px; flex-wrap: wrap;">';
+            echo '<a href="' . admin_url('admin.php?page=thrive-mautic-settings') . '" class="button button-primary">Configure Mautic Settings</a>';
+            echo '<a href="' . admin_url('admin.php?page=thrive-mautic-settings') . '" class="button">Test Connection</a>';
+            echo '</div>';
+            echo '</div>';
+            
+            // Plugin Info
+            echo '<div style="background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin: 20px 0;">';
+            echo '<h2>Plugin Information</h2>';
+            echo '<p><strong>Version:</strong> ' . THRIVE_MAUTIC_VERSION . '</p>';
+            echo '<p><strong>Status:</strong> Active and ready to capture forms</p>';
+            echo '<p><strong>Form Capture:</strong> Thrive Architect, Thrive Leads, Thrive Quiz Builder</p>';
+            echo '</div>';
+            
             echo '</div>';
         },
         'dashicons-email-alt',
@@ -76,7 +153,14 @@ add_action('admin_menu', function() {
             if (isset($_POST['save_settings']) && wp_verify_nonce($_POST['thrive_mautic_nonce'], 'save_settings')) {
                 update_option('thrive_mautic_base_url', sanitize_url($_POST['base_url']));
                 update_option('thrive_mautic_username', sanitize_text_field($_POST['username']));
-                update_option('thrive_mautic_password', sanitize_text_field($_POST['password']));
+                
+                // Encrypt password before storing
+                $password = sanitize_text_field($_POST['password']);
+                if (!empty($password)) {
+                    $encrypted_password = encrypt_password($password);
+                    update_option('thrive_mautic_password', $encrypted_password);
+                }
+                
                 update_option('thrive_mautic_auto_update', isset($_POST['auto_update']));
                 echo '<div class="notice notice-success"><p>Settings saved successfully!</p></div>';
             }
@@ -84,7 +168,8 @@ add_action('admin_menu', function() {
             // Get current settings
             $base_url = get_option('thrive_mautic_base_url', '');
             $username = get_option('thrive_mautic_username', '');
-            $password = get_option('thrive_mautic_password', '');
+            $encrypted_password = get_option('thrive_mautic_password', '');
+            $password = !empty($encrypted_password) ? '••••••••' : ''; // Show dots if password exists
             $auto_update = get_option('thrive_mautic_auto_update', true);
             
             echo '<div class="wrap">';
@@ -137,7 +222,44 @@ add_action('admin_menu', function() {
             
             echo '<p class="submit">';
             echo '<input type="submit" name="save_settings" class="button-primary" value="Save Settings">';
+            echo '<button type="button" id="test-connection" class="button" style="margin-left: 10px;">Test Mautic Connection</button>';
             echo '</p>';
+            
+            // Test Connection Result
+            echo '<div id="connection-result" style="margin-top: 15px;"></div>';
+            
+            // JavaScript for test connection
+            echo '<script>
+            document.getElementById("test-connection").addEventListener("click", function() {
+                this.disabled = true;
+                this.textContent = "Testing...";
+                
+                const formData = new FormData();
+                formData.append("action", "test_mautic_connection");
+                formData.append("nonce", "' . wp_create_nonce("test_mautic_connection") . '");
+                
+                fetch("' . admin_url("admin-ajax.php") . '", {
+                    method: "POST",
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    const resultDiv = document.getElementById("connection-result");
+                    if (data.success) {
+                        resultDiv.innerHTML = \'<div class="notice notice-success inline"><p>\' + data.data + \'</p></div>\';
+                    } else {
+                        resultDiv.innerHTML = \'<div class="notice notice-error inline"><p>\' + data.data + \'</p></div>\';
+                    }
+                })
+                .catch(error => {
+                    document.getElementById("connection-result").innerHTML = \'<div class="notice notice-error inline"><p>Connection test failed: \' + error + \'</p></div>\';
+                })
+                .finally(() => {
+                    this.disabled = false;
+                    this.textContent = "Test Mautic Connection";
+                });
+            });
+            </script>';
             echo '</form>';
             echo '</div>';
         }
@@ -183,6 +305,30 @@ add_action('admin_init', function() {
     delete_site_transient('update_plugins');
 });
 
+// AJAX handler for test connection
+add_action('wp_ajax_test_mautic_connection', function() {
+    if (!wp_verify_nonce($_POST['nonce'], 'test_mautic_connection')) {
+        wp_send_json_error('Security check failed');
+    }
+    
+    if (!current_user_can('manage_options')) {
+        wp_send_json_error('Insufficient permissions');
+    }
+    
+    if (class_exists('ThriveMautic\\MauticAPI')) {
+        $api = new ThriveMautic\MauticAPI();
+        $result = $api->test_connection();
+        
+        if ($result['success']) {
+            wp_send_json_success($result['message']);
+        } else {
+            wp_send_json_error($result['message']);
+        }
+    } else {
+        wp_send_json_error('MauticAPI class not found');
+    }
+});
+
 // Activation and deactivation hooks
 register_activation_hook(__FILE__, function() {
     if (class_exists('ThriveMautic\\Plugin')) {
@@ -195,3 +341,17 @@ register_deactivation_hook(__FILE__, function() {
         ThriveMautic\Plugin::deactivate();
     }
 });
+
+// Password encryption function
+function encrypt_password($password) {
+    $key = wp_salt('AUTH_KEY');
+    $iv = wp_salt('SECURE_AUTH_KEY');
+    return openssl_encrypt($password, 'AES-256-CBC', $key, 0, substr(hash('sha256', $iv), 0, 16));
+}
+
+// Password decryption function
+function decrypt_password($encrypted_password) {
+    $key = wp_salt('AUTH_KEY');
+    $iv = wp_salt('SECURE_AUTH_KEY');
+    return openssl_decrypt($encrypted_password, 'AES-256-CBC', $key, 0, substr(hash('sha256', $iv), 0, 16));
+}

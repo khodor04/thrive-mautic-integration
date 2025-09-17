@@ -21,7 +21,22 @@ class MauticAPI {
      * Constructor
      */
     public function __construct() {
-        $this->mautic_url = Plugin::get_option('mautic_url', 'https://mautic.aipoweredkit.com');
+        $this->mautic_url = rtrim(Plugin::get_option('base_url', ''), '/');
+    }
+    
+    /**
+     * Get Mautic credentials
+     */
+    private function get_credentials() {
+        $username = Plugin::get_option('username', '');
+        $encrypted_password = Plugin::get_option('password', '');
+        $password = !empty($encrypted_password) ? decrypt_password($encrypted_password) : '';
+        
+        return array(
+            'username' => $username,
+            'password' => $password,
+            'base_url' => $this->mautic_url
+        );
     }
     
     /**
@@ -29,6 +44,15 @@ class MauticAPI {
      */
     public function test_connection() {
         try {
+            $credentials = $this->get_credentials();
+            
+            if (empty($credentials['username']) || empty($credentials['password']) || empty($credentials['base_url'])) {
+                return array(
+                    'success' => false,
+                    'message' => __('Mautic credentials not configured. Please check your settings.', 'thrive-mautic-integration')
+                );
+            }
+            
             $this->check_rate_limit();
             
             $response = $this->make_request('GET', '/api/contacts/new');
@@ -54,17 +78,75 @@ class MauticAPI {
     }
     
     /**
-     * Create or update contact
+     * Process form submission (main method called by FormCapture)
      */
-    public function create_contact($email, $name, $tags = array()) {
+    public function process_submission($email, $name, $segment_id = '', $form_type = '') {
+        try {
+            $credentials = $this->get_credentials();
+            
+            if (empty($credentials['username']) || empty($credentials['password']) || empty($credentials['base_url'])) {
+                return array(
+                    'success' => false,
+                    'error' => 'Mautic credentials not configured'
+                );
+            }
+            
+            // Create contact
+            $contact_result = $this->create_contact($email, $name, $form_type);
+            
+            if (!$contact_result['success']) {
+                return $contact_result;
+            }
+            
+            // Add to segment if specified
+            if (!empty($segment_id)) {
+                $segment_result = $this->add_contact_to_segment($email, $segment_id);
+                if (!$segment_result['success']) {
+                    Plugin::log_error('Failed to add contact to segment', array(
+                        'email' => $email,
+                        'segment_id' => $segment_id,
+                        'error' => $segment_result['error']
+                    ));
+                }
+            }
+            
+            return array(
+                'success' => true,
+                'message' => 'Contact created successfully in Mautic'
+            );
+            
+        } catch (Exception $e) {
+            Plugin::log_error('Submission processing failed', array(
+                'email' => $email,
+                'error' => $e->getMessage()
+            ));
+            return array(
+                'success' => false,
+                'error' => 'Mautic API error: ' . $e->getMessage()
+            );
+        }
+    }
+    
+    /**
+     * Create contact in Mautic
+     */
+    public function create_contact($email, $name = '', $form_type = '') {
         try {
             $this->check_rate_limit();
             
             $contact_data = array(
                 'email' => $email,
                 'firstname' => $name,
-                'tags' => array_merge($tags, array('wordpress-optin'))
+                'lastname' => '',
+                'tags' => array('thrive-mautic-integration', $form_type)
             );
+            
+            // Split name if it contains both first and last name
+            if (!empty($name) && strpos($name, ' ') !== false) {
+                $name_parts = explode(' ', $name, 2);
+                $contact_data['firstname'] = $name_parts[0];
+                $contact_data['lastname'] = $name_parts[1];
+            }
             
             $response = $this->make_request('POST', '/api/contacts/new', $contact_data);
             
@@ -72,7 +154,7 @@ class MauticAPI {
                 return array(
                     'success' => true,
                     'contact_id' => $response['data']['contact']['id'] ?? null,
-                    'data' => $response['data']
+                    'message' => 'Contact created successfully'
                 );
             } else {
                 return array(
@@ -80,17 +162,57 @@ class MauticAPI {
                     'error' => $response['error']
                 );
             }
+            
         } catch (Exception $e) {
-            Plugin::log_error('Contact creation failed', array(
-                'email' => $email,
-                'error' => $e->getMessage()
-            ));
             return array(
                 'success' => false,
-                'error' => $e->getMessage()
+                'error' => 'Contact creation failed: ' . $e->getMessage()
             );
         }
     }
+    
+    /**
+     * Add contact to segment
+     */
+    public function add_contact_to_segment($email, $segment_id) {
+        try {
+            $this->check_rate_limit();
+            
+            // First, get the contact ID by email
+            $contact_response = $this->make_request('GET', '/api/contacts?search=' . urlencode($email));
+            
+            if (!$contact_response['success'] || empty($contact_response['data']['contacts'])) {
+                return array(
+                    'success' => false,
+                    'error' => 'Contact not found in Mautic'
+                );
+            }
+            
+            $contact_id = $contact_response['data']['contacts'][0]['id'];
+            
+            // Add contact to segment
+            $response = $this->make_request('POST', "/api/segments/{$segment_id}/contact/{$contact_id}/add");
+            
+            if ($response['success']) {
+                return array(
+                    'success' => true,
+                    'message' => 'Contact added to segment successfully'
+                );
+            } else {
+                return array(
+                    'success' => false,
+                    'error' => $response['error']
+                );
+            }
+            
+        } catch (Exception $e) {
+            return array(
+                'success' => false,
+                'error' => 'Failed to add contact to segment: ' . $e->getMessage()
+            );
+        }
+    }
+    
     
     /**
      * Add contact to segment
@@ -251,10 +373,9 @@ class MauticAPI {
      * Make API request to Mautic
      */
     private function make_request($method, $endpoint, $data = null) {
-        $username = Plugin::get_option('mautic_username');
-        $password = $this->get_decrypted_password();
+        $credentials = $this->get_credentials();
         
-        if (empty($username) || empty($password)) {
+        if (empty($credentials['username']) || empty($credentials['password']) || empty($credentials['base_url'])) {
             return array(
                 'success' => false,
                 'error' => __('Mautic credentials not configured', 'thrive-mautic-integration')
@@ -262,7 +383,7 @@ class MauticAPI {
         }
         
         $headers = array(
-            'Authorization' => 'Basic ' . base64_encode($username . ':' . $password),
+            'Authorization' => 'Basic ' . base64_encode($credentials['username'] . ':' . $credentials['password']),
             'Content-Type' => 'application/json'
         );
         
@@ -276,7 +397,7 @@ class MauticAPI {
             $args['body'] = json_encode($data);
         }
         
-        $url = rtrim($this->mautic_url, '/') . $endpoint;
+        $url = rtrim($credentials['base_url'], '/') . $endpoint;
         $response = wp_remote_request($url, $args);
         
         if (is_wp_error($response)) {
