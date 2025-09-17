@@ -76,6 +76,7 @@ add_action('admin_menu', function() {
             'manage_options',
             'thrive-mautic-dashboard',
             function() {
+            try {
             // Get statistics
             $stats = array(
                 'today_signups' => 0,
@@ -158,7 +159,7 @@ add_action('admin_menu', function() {
             echo '</div>';
             
             echo '</div>';
-            } catch (Exception $e) {
+        } catch (Exception $e) {
                 error_log('Thrive Mautic Dashboard Error: ' . $e->getMessage());
                 echo '<div class="wrap"><h1>Thrive-Mautic Dashboard</h1>';
                 echo '<div class="notice notice-error"><p>Plugin error occurred. Please check error logs.</p></div>';
