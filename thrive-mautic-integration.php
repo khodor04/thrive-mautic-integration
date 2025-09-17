@@ -21,6 +21,23 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+// Error handling - prevent plugin from crashing the site
+register_shutdown_function(function() {
+    $error = error_get_last();
+    if ($error && strpos($error['file'], 'thrive-mautic-integration') !== false) {
+        // Log the error but don't crash the site
+        error_log('Thrive Mautic Plugin Error: ' . $error['message'] . ' in ' . $error['file'] . ' on line ' . $error['line']);
+        
+        // Deactivate plugin if critical error
+        if (strpos($error['message'], 'Fatal error') !== false || strpos($error['message'], 'Parse error') !== false) {
+            deactivate_plugins(plugin_basename(__FILE__));
+            add_action('admin_notices', function() {
+                echo '<div class="notice notice-error"><p><strong>Thrive Mautic Plugin:</strong> Plugin has been deactivated due to a critical error. Please check the error logs.</p></div>';
+            });
+        }
+    }
+});
+
 // Define plugin constants
 define('THRIVE_MAUTIC_VERSION', '4.5.0');
 define('THRIVE_MAUTIC_PLUGIN_FILE', __FILE__);
@@ -28,32 +45,37 @@ define('THRIVE_MAUTIC_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('THRIVE_MAUTIC_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('THRIVE_MAUTIC_PLUGIN_BASENAME', plugin_basename(__FILE__));
 
-// Autoloader for classes
+// Autoloader for classes with error handling
 spl_autoload_register(function ($class) {
-    $prefix = 'ThriveMautic\\';
-    $base_dir = THRIVE_MAUTIC_PLUGIN_DIR . 'includes/';
-    
-    $len = strlen($prefix);
-    if (strncmp($prefix, $class, $len) !== 0) {
-        return;
-    }
-    
-    $relative_class = substr($class, $len);
-    $file = $base_dir . str_replace('\\', '/', $relative_class) . '.php';
-    
-    if (file_exists($file)) {
-        require_once $file;
+    try {
+        $prefix = 'ThriveMautic\\';
+        $base_dir = THRIVE_MAUTIC_PLUGIN_DIR . 'includes/';
+        
+        $len = strlen($prefix);
+        if (strncmp($prefix, $class, $len) !== 0) {
+            return;
+        }
+        
+        $relative_class = substr($class, $len);
+        $file = $base_dir . str_replace('\\', '/', $relative_class) . '.php';
+        
+        if (file_exists($file)) {
+            require_once $file;
+        }
+    } catch (Exception $e) {
+        error_log('Thrive Mautic Autoloader Error: ' . $e->getMessage());
     }
 });
 
 // Simple admin menu registration - this will definitely work
 add_action('admin_menu', function() {
-    add_menu_page(
-        'Thrive-Mautic Dashboard',
-        'Thrive-Mautic',
-        'manage_options',
-        'thrive-mautic-dashboard',
-        function() {
+    try {
+        add_menu_page(
+            'Thrive-Mautic Dashboard',
+            'Thrive-Mautic',
+            'manage_options',
+            'thrive-mautic-dashboard',
+            function() {
             // Get statistics
             $stats = array(
                 'today_signups' => 0,
@@ -136,19 +158,31 @@ add_action('admin_menu', function() {
             echo '</div>';
             
             echo '</div>';
+            } catch (Exception $e) {
+                error_log('Thrive Mautic Dashboard Error: ' . $e->getMessage());
+                echo '<div class="wrap"><h1>Thrive-Mautic Dashboard</h1>';
+                echo '<div class="notice notice-error"><p>Plugin error occurred. Please check error logs.</p></div>';
+                echo '</div>';
+            }
         },
         'dashicons-email-alt',
         30
     );
+    } catch (Exception $e) {
+        error_log('Thrive Mautic Menu Error: ' . $e->getMessage());
+    }
+});
     
     // Add settings submenu
-    add_submenu_page(
-        'thrive-mautic-dashboard',
-        'Settings',
-        'Settings',
-        'manage_options',
-        'thrive-mautic-settings',
-        function() {
+    try {
+        add_submenu_page(
+            'thrive-mautic-dashboard',
+            'Settings',
+            'Settings',
+            'manage_options',
+            'thrive-mautic-settings',
+            function() {
+            try {
             // Handle form submission
             if (isset($_POST['save_settings']) && wp_verify_nonce($_POST['thrive_mautic_nonce'], 'save_settings')) {
                 update_option('thrive_mautic_base_url', sanitize_url($_POST['base_url']));
@@ -262,24 +296,41 @@ add_action('admin_menu', function() {
             </script>';
             echo '</form>';
             echo '</div>';
+            } catch (Exception $e) {
+                error_log('Thrive Mautic Settings Error: ' . $e->getMessage());
+                echo '<div class="wrap"><h1>Thrive-Mautic Settings</h1>';
+                echo '<div class="notice notice-error"><p>Settings error occurred. Please check error logs.</p></div>';
+                echo '</div>';
+            }
         }
-    );
+        );
+    } catch (Exception $e) {
+        error_log('Thrive Mautic Settings Menu Error: ' . $e->getMessage());
+    }
 });
 
-// Initialize the plugin
+// Initialize the plugin with error handling
 add_action('plugins_loaded', function() {
-    if (class_exists('ThriveMautic\\Plugin')) {
-        new ThriveMautic\Plugin();
+    try {
+        if (class_exists('ThriveMautic\\Plugin')) {
+            new ThriveMautic\Plugin();
+        }
+    } catch (Exception $e) {
+        error_log('Thrive Mautic Plugin Initialization Error: ' . $e->getMessage());
     }
 });
 
 // WordPress Auto-Update System (shows notifications like other plugins)
 add_action('init', function() {
-    if (is_admin()) {
-        // Always initialize the updater for proper WordPress integration
-        if (class_exists('ThriveMautic\\WordPressUpdater')) {
-            new ThriveMautic\WordPressUpdater();
+    try {
+        if (is_admin()) {
+            // Always initialize the updater for proper WordPress integration
+            if (class_exists('ThriveMautic\\WordPressUpdater')) {
+                new ThriveMautic\WordPressUpdater();
+            }
         }
+    } catch (Exception $e) {
+        error_log('Thrive Mautic Updater Error: ' . $e->getMessage());
     }
 });
 
@@ -307,25 +358,30 @@ add_action('admin_init', function() {
 
 // AJAX handler for test connection
 add_action('wp_ajax_test_mautic_connection', function() {
-    if (!wp_verify_nonce($_POST['nonce'], 'test_mautic_connection')) {
-        wp_send_json_error('Security check failed');
-    }
-    
-    if (!current_user_can('manage_options')) {
-        wp_send_json_error('Insufficient permissions');
-    }
-    
-    if (class_exists('ThriveMautic\\MauticAPI')) {
-        $api = new ThriveMautic\MauticAPI();
-        $result = $api->test_connection();
-        
-        if ($result['success']) {
-            wp_send_json_success($result['message']);
-        } else {
-            wp_send_json_error($result['message']);
+    try {
+        if (!wp_verify_nonce($_POST['nonce'], 'test_mautic_connection')) {
+            wp_send_json_error('Security check failed');
         }
-    } else {
-        wp_send_json_error('MauticAPI class not found');
+        
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error('Insufficient permissions');
+        }
+        
+        if (class_exists('ThriveMautic\\MauticAPI')) {
+            $api = new ThriveMautic\MauticAPI();
+            $result = $api->test_connection();
+            
+            if ($result['success']) {
+                wp_send_json_success($result['message']);
+            } else {
+                wp_send_json_error($result['message']);
+            }
+        } else {
+            wp_send_json_error('MauticAPI class not found');
+        }
+    } catch (Exception $e) {
+        error_log('Thrive Mautic AJAX Error: ' . $e->getMessage());
+        wp_send_json_error('Connection test failed: ' . $e->getMessage());
     }
 });
 
@@ -351,7 +407,25 @@ function encrypt_password($password) {
 
 // Password decryption function
 function decrypt_password($encrypted_password) {
-    $key = wp_salt('AUTH_KEY');
-    $iv = wp_salt('SECURE_AUTH_KEY');
-    return openssl_decrypt($encrypted_password, 'AES-256-CBC', $key, 0, substr(hash('sha256', $iv), 0, 16));
+    try {
+        $key = wp_salt('AUTH_KEY');
+        $iv = wp_salt('SECURE_AUTH_KEY');
+        return openssl_decrypt($encrypted_password, 'AES-256-CBC', $key, 0, substr(hash('sha256', $iv), 0, 16));
+    } catch (Exception $e) {
+        error_log('Thrive Mautic Decrypt Error: ' . $e->getMessage());
+        return '';
+    }
 }
+
+// Fallback mode - simple admin notice if plugin fails
+add_action('admin_notices', function() {
+    if (current_user_can('manage_options')) {
+        $plugin_file = plugin_basename(__FILE__);
+        $plugin_data = get_plugin_data(__FILE__);
+        
+        echo '<div class="notice notice-info">';
+        echo '<p><strong>Thrive-Mautic Integration:</strong> Plugin is active and monitoring for form submissions.</p>';
+        echo '<p>Version: ' . $plugin_data['Version'] . ' | <a href="' . admin_url('admin.php?page=thrive-mautic-dashboard') . '">Dashboard</a> | <a href="' . admin_url('admin.php?page=thrive-mautic-settings') . '">Settings</a></p>';
+        echo '</div>';
+    }
+});
