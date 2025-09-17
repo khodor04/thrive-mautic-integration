@@ -1,0 +1,87 @@
+name: Auto Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Extract version from tag
+      id: version
+      run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+      
+    - name: Create plugin zip
+      run: |
+        # Create zip file excluding unnecessary files
+        zip -r thrive-mautic-integration.zip . \
+          -x "*.git*" \
+          -x "*.github*" \
+          -x "*.md" \
+          -x "*.yml" \
+          -x "node_modules/*" \
+          -x "*.log" \
+          -x "test_*.php" \
+          -x "validate_*.php" \
+          -x "setup_*.bat" \
+          -x "deploy.*"
+    
+    - name: Generate release notes
+      id: release_notes
+      run: |
+        # Get the previous tag
+        PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD~1 2>/dev/null || echo "")
+        
+        # Generate changelog
+        if [ -n "$PREVIOUS_TAG" ]; then
+          CHANGELOG=$(git log --pretty=format:"- %s" ${PREVIOUS_TAG}..HEAD)
+        else
+          CHANGELOG=$(git log --pretty=format:"- %s" --max-count=10)
+        fi
+        
+        # Create release notes
+        cat > release_notes.md << EOF
+        🚀 **Thrive-Mautic Integration Plugin ${GITHUB_REF#refs/tags/}**
+        
+        ## What's New:
+        ${CHANGELOG}
+        
+        ## Installation:
+        1. Download the zip file below
+        2. Upload to WordPress Admin → Plugins → Add New → Upload Plugin
+        3. Activate the plugin
+        4. Configure your Mautic settings
+        
+        ## Features:
+        - Complete Thrive Themes form capture (Architect, Leads, Quiz Builder)
+        - Full Mautic API integration
+        - Enhanced dashboard with real-time statistics
+        - Secure credential storage with encryption
+        - WordPress auto-update system
+        - Test connection feature
+        
+        **Ready for production use!** 🎉
+        EOF
+        
+        echo "RELEASE_NOTES<<EOF" >> $GITHUB_OUTPUT
+        cat release_notes.md >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+    
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: thrive-mautic-integration.zip
+        body: ${{ steps.release_notes.outputs.RELEASE_NOTES }}
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
