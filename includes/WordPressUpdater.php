@@ -77,11 +77,18 @@ class WordPressUpdater {
         
         $remote = $this->check_for_updates();
         
-        if ($remote && version_compare($this->version, $remote->tag_name, '<')) {
+        // Debug logging
+        error_log('Thrive Mautic Updater: Current version: ' . $this->version);
+        if ($remote) {
+            error_log('Thrive Mautic Updater: Remote version: ' . $remote->tag_name);
+            error_log('Thrive Mautic Updater: Cleaned version: ' . ltrim($remote->tag_name, 'v'));
+        }
+        
+        if ($remote && version_compare($this->version, ltrim($remote->tag_name, 'v'), '<')) {
             $res = new \stdClass();
             $res->slug = 'thrive-mautic-integration';
             $res->plugin = $this->plugin_slug;
-            $res->new_version = $remote->tag_name;
+            $res->new_version = ltrim($remote->tag_name, 'v');
             $res->tested = '6.4';
             $res->package = $remote->zipball_url;
             
@@ -103,7 +110,7 @@ class WordPressUpdater {
                 $res->slug = 'thrive-mautic-integration';
                 $res->plugin = $this->plugin_slug;
                 $res->name = 'Smart Thrive-Mautic Integration Pro';
-                $res->version = $remote->tag_name;
+                $res->version = ltrim($remote->tag_name, 'v');
                 $res->tested = '6.4';
                 $res->requires = '5.0';
                 $res->requires_php = '7.4';

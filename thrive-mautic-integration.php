@@ -176,6 +176,13 @@ add_action('admin_init', function() {
 
 // Auto-update settings are now integrated into the main Settings page
 
+// Force WordPress to check for updates
+add_action('admin_init', function() {
+    // Clear update cache to force fresh check
+    delete_transient('thrive_mautic_updater');
+    delete_site_transient('update_plugins');
+});
+
 // Activation and deactivation hooks
 register_activation_hook(__FILE__, function() {
     if (class_exists('ThriveMautic\\Plugin')) {
