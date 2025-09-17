@@ -199,27 +199,27 @@ try {
                         
                         // Mautic Base URL
                         echo '<tr>';
-                        echo '<th scope="row"><label for="base_url">Mautic Base URL</label></th>';
+                        echo '<th scope="row"><label for="thrive_mautic_base_url">Mautic Base URL</label></th>';
                         echo '<td>';
-                        echo '<input type="url" id="base_url" name="base_url" value="' . esc_attr($base_url) . '" class="regular-text" placeholder="https://your-mautic-site.com">';
+                        echo '<input type="url" id="thrive_mautic_base_url" name="base_url" value="' . esc_attr($base_url) . '" class="regular-text" placeholder="https://your-mautic-site.com">';
                         echo '<p class="description">Enter your Mautic installation URL (e.g., https://your-mautic-site.com)</p>';
                         echo '</td>';
                         echo '</tr>';
                         
                         // Mautic Username
                         echo '<tr>';
-                        echo '<th scope="row"><label for="username">Mautic Username</label></th>';
+                        echo '<th scope="row"><label for="thrive_mautic_username">Mautic Username</label></th>';
                         echo '<td>';
-                        echo '<input type="text" id="username" name="username" value="' . esc_attr($username) . '" class="regular-text" placeholder="your-username">';
+                        echo '<input type="text" id="thrive_mautic_username" name="username" value="' . esc_attr($username) . '" class="regular-text" placeholder="your-username">';
                         echo '<p class="description">Enter your Mautic username</p>';
                         echo '</td>';
                         echo '</tr>';
                         
                         // Mautic Password
                         echo '<tr>';
-                        echo '<th scope="row"><label for="password">Mautic Password</label></th>';
+                        echo '<th scope="row"><label for="thrive_mautic_password">Mautic Password</label></th>';
                         echo '<td>';
-                        echo '<input type="password" id="password" name="password" value="' . esc_attr($password) . '" class="regular-text" placeholder="your-password">';
+                        echo '<input type="password" id="thrive_mautic_password" name="password" value="' . esc_attr($password) . '" class="regular-text" placeholder="your-password">';
                         echo '<p class="description">Enter your Mautic password</p>';
                         echo '</td>';
                         echo '</tr>';
