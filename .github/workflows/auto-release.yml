@@ -23,7 +23,8 @@ jobs:
     - name: Create plugin zip
       run: |
         # Create clean plugin zip with ONLY essential files
-        zip -r thrive-mautic-integration.zip . \
+        VERSION=${GITHUB_REF#refs/tags/}
+        zip -r thrive-mautic-integration-${VERSION}.zip . \
           -x "*.git*" \
           -x "*.github*" \
           -x "*.md" \
@@ -88,7 +89,7 @@ jobs:
     - name: Create Release
       uses: softprops/action-gh-release@v1
       with:
-        files: thrive-mautic-integration.zip
+        files: thrive-mautic-integration-${GITHUB_REF#refs/tags/}.zip
         body: ${{ steps.release_notes.outputs.RELEASE_NOTES }}
         draft: false
         prerelease: false
