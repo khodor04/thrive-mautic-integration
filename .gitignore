@@ -9,8 +9,14 @@ wp-content/wp-cache-config.php
 # Plugin specific
 *.log
 *.tmp
-.DS_Store
-Thumbs.db
+*.temp
+
+# Test and development files
+test_*.php
+validate_*.php
+setup_*.bat
+release.*
+deploy.*
 
 # IDE
 .vscode/

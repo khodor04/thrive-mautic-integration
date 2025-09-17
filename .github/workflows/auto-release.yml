@@ -22,18 +22,27 @@ jobs:
       
     - name: Create plugin zip
       run: |
-        # Create zip file excluding unnecessary files
+        # Create clean plugin zip with ONLY essential files
         zip -r thrive-mautic-integration.zip . \
           -x "*.git*" \
           -x "*.github*" \
           -x "*.md" \
           -x "*.yml" \
+          -x "*.yaml" \
           -x "node_modules/*" \
           -x "*.log" \
           -x "test_*.php" \
           -x "validate_*.php" \
           -x "setup_*.bat" \
-          -x "deploy.*"
+          -x "release.*" \
+          -x "deploy.*" \
+          -x "*.tmp" \
+          -x "*.temp" \
+          -x ".DS_Store" \
+          -x "Thumbs.db" \
+          -x "*.swp" \
+          -x "*.swo" \
+          -x "*~"
     
     - name: Generate release notes
       id: release_notes
