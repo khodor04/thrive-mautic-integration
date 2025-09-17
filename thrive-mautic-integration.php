@@ -192,16 +192,21 @@ try {
                         
                         echo '<div class="wrap">';
                         echo '<h1>Thrive-Mautic Settings</h1>';
-                        echo '<form method="post" name="thrive_mautic_integration_settings_form" autocomplete="off">';
+                        echo '<form method="post" name="thrive_mautic_integration_settings_form" autocomplete="off" data-lpignore="true">';
                         wp_nonce_field('save_settings', 'thrive_mautic_nonce');
+                        
+                        // Hidden fields to confuse browser auto-fill
+                        echo '<input type="text" name="fake_username" style="display:none;" autocomplete="off">';
+                        echo '<input type="password" name="fake_password" style="display:none;" autocomplete="off">';
+                        echo '<input type="url" name="fake_url" style="display:none;" autocomplete="off">';
                         
                         echo '<table class="form-table">';
                         
                         // Mautic Base URL
                         echo '<tr>';
-                        echo '<th scope="row"><label for="thrive_mautic_integration_base_url_field">Mautic Base URL</label></th>';
+                        echo '<th scope="row"><label for="thrive_mautic_integration_base_url_field_' . time() . '">Mautic Base URL</label></th>';
                         echo '<td>';
-                        echo '<input type="url" id="thrive_mautic_integration_base_url_field" name="base_url" value="' . esc_attr($base_url) . '" class="regular-text" placeholder="https://your-mautic-site.com" autocomplete="off">';
+                        echo '<input type="url" id="thrive_mautic_integration_base_url_field_' . time() . '" name="base_url" value="' . esc_attr($base_url) . '" class="regular-text" placeholder="https://your-mautic-site.com" autocomplete="new-password" data-lpignore="true">';
                         echo '<p class="description">Enter your Mautic installation URL (e.g., https://your-mautic-site.com)</p>';
                         echo '</td>';
                         echo '</tr>';
@@ -246,8 +251,23 @@ try {
                         // Test Connection Result
                         echo '<div id="connection-result" style="margin-top: 15px;"></div>';
                         
-                        // JavaScript for test connection
+                        // JavaScript to prevent auto-fill interference
                         echo '<script>
+                        // Clear any cached auto-fill data
+                        document.addEventListener("DOMContentLoaded", function() {
+                            // Clear all input fields that might interfere
+                            var inputs = document.querySelectorAll("input[type=text], input[type=search], input[type=url]");
+                            inputs.forEach(function(input) {
+                                if (input.id !== "thrive_mautic_integration_base_url_field" && 
+                                    input.id !== "thrive_mautic_integration_username_field" && 
+                                    input.id !== "thrive_mautic_integration_password_field") {
+                                    input.setAttribute("autocomplete", "off");
+                                    input.setAttribute("data-lpignore", "true");
+                                }
+                            });
+                        });
+                        
+                        // JavaScript for test connection
                         document.getElementById("test-connection").addEventListener("click", function() {
                             this.disabled = true;
                             this.textContent = "Testing...";
