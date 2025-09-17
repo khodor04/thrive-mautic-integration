@@ -4,7 +4,7 @@
  * Plugin URI: https://yourwebsite.com/thrive-mautic-integration
  * Description: Simplified Thrive Themes integration with comprehensive dashboard
  * Version: 4.2.0
- * Author: Your Name
+ * Author: Khodor Ghalayini
  * Author URI: https://yourwebsite.com
  * License: GPL v2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -72,9 +72,73 @@ add_action('admin_menu', function() {
         'manage_options',
         'thrive-mautic-settings',
         function() {
+            // Handle form submission
+            if (isset($_POST['save_settings']) && wp_verify_nonce($_POST['thrive_mautic_nonce'], 'save_settings')) {
+                update_option('thrive_mautic_base_url', sanitize_url($_POST['base_url']));
+                update_option('thrive_mautic_username', sanitize_text_field($_POST['username']));
+                update_option('thrive_mautic_password', sanitize_text_field($_POST['password']));
+                update_option('thrive_mautic_auto_update', isset($_POST['auto_update']));
+                echo '<div class="notice notice-success"><p>Settings saved successfully!</p></div>';
+            }
+            
+            // Get current settings
+            $base_url = get_option('thrive_mautic_base_url', '');
+            $username = get_option('thrive_mautic_username', '');
+            $password = get_option('thrive_mautic_password', '');
+            $auto_update = get_option('thrive_mautic_auto_update', true);
+            
             echo '<div class="wrap">';
             echo '<h1>Thrive-Mautic Settings</h1>';
-            echo '<p>Settings page is working!</p>';
+            echo '<form method="post">';
+            wp_nonce_field('save_settings', 'thrive_mautic_nonce');
+            
+            echo '<table class="form-table">';
+            
+            // Mautic Base URL
+            echo '<tr>';
+            echo '<th scope="row"><label for="base_url">Mautic Base URL</label></th>';
+            echo '<td>';
+            echo '<input type="url" id="base_url" name="base_url" value="' . esc_attr($base_url) . '" class="regular-text" placeholder="https://your-mautic-site.com">';
+            echo '<p class="description">Enter your Mautic installation URL (e.g., https://your-mautic-site.com)</p>';
+            echo '</td>';
+            echo '</tr>';
+            
+            // Mautic Username
+            echo '<tr>';
+            echo '<th scope="row"><label for="username">Mautic Username</label></th>';
+            echo '<td>';
+            echo '<input type="text" id="username" name="username" value="' . esc_attr($username) . '" class="regular-text" placeholder="your-username">';
+            echo '<p class="description">Enter your Mautic username</p>';
+            echo '</td>';
+            echo '</tr>';
+            
+            // Mautic Password
+            echo '<tr>';
+            echo '<th scope="row"><label for="password">Mautic Password</label></th>';
+            echo '<td>';
+            echo '<input type="password" id="password" name="password" value="' . esc_attr($password) . '" class="regular-text" placeholder="your-password">';
+            echo '<p class="description">Enter your Mautic password</p>';
+            echo '</td>';
+            echo '</tr>';
+            
+            // Auto-Update Setting
+            echo '<tr>';
+            echo '<th scope="row">Auto-Updates</th>';
+            echo '<td>';
+            echo '<label>';
+            echo '<input type="checkbox" name="auto_update" value="1" ' . checked($auto_update, true, false) . '>';
+            echo ' Enable automatic updates from GitHub';
+            echo '</label>';
+            echo '<p class="description">When enabled, you will see update notifications in your WordPress admin like other plugins.</p>';
+            echo '</td>';
+            echo '</tr>';
+            
+            echo '</table>';
+            
+            echo '<p class="submit">';
+            echo '<input type="submit" name="save_settings" class="button-primary" value="Save Settings">';
+            echo '</p>';
+            echo '</form>';
             echo '</div>';
         }
     );
@@ -90,60 +154,27 @@ add_action('plugins_loaded', function() {
 // WordPress Auto-Update System (shows notifications like other plugins)
 add_action('init', function() {
     if (is_admin()) {
-        // Check if auto-updates are enabled
-        $auto_update_enabled = get_option('thrive_mautic_auto_update', true);
-        
-        if ($auto_update_enabled && class_exists('ThriveMautic\\WordPressUpdater')) {
+        // Always initialize the updater for proper WordPress integration
+        if (class_exists('ThriveMautic\\WordPressUpdater')) {
             new ThriveMautic\WordPressUpdater();
         }
     }
 });
+
+// Add auto-update support to WordPress
+add_filter('auto_update_plugin', function($update, $item) {
+    if ($item->slug === 'thrive-mautic-integration') {
+        return get_option('thrive_mautic_auto_update', true);
+    }
+    return $update;
+}, 10, 2);
 
 // Add auto-update settings
 add_action('admin_init', function() {
     register_setting('thrive_mautic_settings', 'thrive_mautic_auto_update');
 });
 
-// Add auto-update control to admin menu
-add_action('admin_menu', function() {
-    add_submenu_page(
-        'thrive-mautic-dashboard',
-        'Auto-Update Settings',
-        'Auto-Update',
-        'manage_options',
-        'thrive-mautic-auto-update',
-        function() {
-            $auto_update_enabled = get_option('thrive_mautic_auto_update', true);
-            
-            if (isset($_POST['save_auto_update'])) {
-                $auto_update_enabled = isset($_POST['auto_update_enabled']);
-                update_option('thrive_mautic_auto_update', $auto_update_enabled);
-                echo '<div class="notice notice-success"><p>Auto-update settings saved!</p></div>';
-            }
-            
-            echo '<div class="wrap">';
-            echo '<h1>Auto-Update Settings</h1>';
-            echo '<form method="post">';
-            echo '<table class="form-table">';
-            echo '<tr>';
-            echo '<th scope="row">Enable Auto-Updates</th>';
-            echo '<td>';
-            echo '<label>';
-            echo '<input type="checkbox" name="auto_update_enabled" value="1" ' . checked($auto_update_enabled, true, false) . '>';
-            echo ' Automatically check for updates from GitHub';
-            echo '</label>';
-            echo '<p class="description">When enabled, you will see update notifications in your WordPress admin like other plugins.</p>';
-            echo '</td>';
-            echo '</tr>';
-            echo '</table>';
-            echo '<p class="submit">';
-            echo '<input type="submit" name="save_auto_update" class="button-primary" value="Save Settings">';
-            echo '</p>';
-            echo '</form>';
-            echo '</div>';
-        }
-    );
-});
+// Auto-update settings are now integrated into the main Settings page
 
 // Activation and deactivation hooks
 register_activation_hook(__FILE__, function() {

@@ -21,6 +21,19 @@ class WordPressUpdater {
         add_filter('pre_set_site_transient_update_plugins', array($this, 'modify_transient'), 10, 1);
         add_filter('plugins_api', array($this, 'plugin_popup'), 10, 3);
         add_filter('upgrader_post_install', array($this, 'after_install'), 10, 3);
+        
+        // Add auto-update support
+        add_filter('auto_update_plugin', array($this, 'auto_update_plugin'), 10, 2);
+    }
+    
+    /**
+     * Enable auto-updates for this plugin
+     */
+    public function auto_update_plugin($update, $item) {
+        if ($item->slug === 'thrive-mautic-integration') {
+            return get_option('thrive_mautic_auto_update', true);
+        }
+        return $update;
     }
     
     /**
