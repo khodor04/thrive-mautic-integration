@@ -303,7 +303,6 @@ add_action('admin_menu', function() {
                 echo '<div class="notice notice-error"><p>Settings error occurred. Please check error logs.</p></div>';
                 echo '</div>';
             }
-        }
         );
     } catch (Exception $e) {
         error_log('Thrive Mautic Settings Menu Error: ' . $e->getMessage());
