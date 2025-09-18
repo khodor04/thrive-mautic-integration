@@ -2,8 +2,8 @@
 /**
  * Plugin Name: Thrive-Mautic Integration
  * Plugin URI: https://yourwebsite.com/thrive-mautic-integration
- * Description: Simplified Thrive Themes integration with comprehensive dashboard
- * Version: 5.0.6
+ * Description: Thrive Themes Integration With Mautic
+ * Version: 5.7.0
  * Author: Khodor Ghalayini
  * Author URI: https://yourwebsite.com
  * License: GPL v2 or later
@@ -18,7 +18,7 @@ if (!defined('ABSPATH')) {
 // WRAP EVERYTHING IN TRY-CATCH TO PREVENT CRASHES
 try {
     // Define plugin constants
-    define('THRIVE_MAUTIC_VERSION', '5.0.6');
+    define('THRIVE_MAUTIC_VERSION', '5.7.0');
     define('THRIVE_MAUTIC_PLUGIN_FILE', __FILE__);
     define('THRIVE_MAUTIC_PLUGIN_DIR', plugin_dir_path(__FILE__));
 
@@ -626,10 +626,14 @@ try {
                         echo '<p class="submit">';
                         echo '<input type="submit" name="save_settings" class="button-primary" value="Save Settings">';
                         echo '<button type="button" id="test-connection" class="button" style="margin-left: 10px;">Test Mautic Connection</button>';
+                        echo '<button type="button" id="force-update-check" class="button" style="margin-left: 10px;">Force Update Check</button>';
                         echo '</p>';
                         
                         // Test Connection Result
                         echo '<div id="connection-result" style="margin-top: 15px;"></div>';
+                        
+                        // Update Check Result
+                        echo '<div id="update-result" style="margin-top: 15px;"></div>';
                         
                         // JavaScript to prevent auto-fill interference
                         echo '<script>
@@ -675,6 +679,41 @@ try {
                             .finally(() => {
                                 this.disabled = false;
                                 this.textContent = "Test Mautic Connection";
+                            });
+                        });
+                        
+                        // JavaScript for force update check
+                        document.getElementById("force-update-check").addEventListener("click", function() {
+                            this.disabled = true;
+                            this.textContent = "Checking...";
+                            
+                            // Clear WordPress update cache
+                            fetch("' . admin_url("admin-ajax.php") . '", {
+                                method: "POST",
+                                headers: {
+                                    "Content-Type": "application/x-www-form-urlencoded",
+                                },
+                                body: "action=thrive_mautic_force_update_check&nonce=' . wp_create_nonce("force_update_check") . '"
+                            })
+                            .then(response => response.json())
+                            .then(data => {
+                                const resultDiv = document.getElementById("update-result");
+                                if (data.success) {
+                                    if (data.data.update_available) {
+                                        resultDiv.innerHTML = \'<div class="notice notice-warning inline"><p><strong>Update Available!</strong> Version \' + data.data.version + \' is available. <a href="' . admin_url('plugins.php') . '">Go to Plugins Page to Update</a></p></div>\';
+                                    } else {
+                                        resultDiv.innerHTML = \'<div class="notice notice-success inline"><p>You are running the latest version (' . THRIVE_MAUTIC_VERSION . ')</p></div>\';
+                                    }
+                                } else {
+                                    resultDiv.innerHTML = \'<div class="notice notice-error inline"><p>Update check failed: \' + data.data + \'</p></div>\';
+                                }
+                            })
+                            .catch(error => {
+                                document.getElementById("update-result").innerHTML = \'<div class="notice notice-error inline"><p>Update check failed: \' + error + \'</p></div>\';
+                            })
+                            .finally(() => {
+                                this.disabled = false;
+                                this.textContent = "Force Update Check";
                             });
                         });
                         
@@ -866,6 +905,65 @@ try {
         }
     }
 
+
+    // AJAX handler for force update check
+    add_action('wp_ajax_thrive_mautic_force_update_check', function() {
+        try {
+            // Check user capabilities
+            if (!current_user_can('manage_options')) {
+                wp_send_json_error('Insufficient permissions');
+                return;
+            }
+            
+            if (!wp_verify_nonce($_POST['nonce'], 'force_update_check')) {
+                wp_send_json_error('Invalid nonce');
+                return;
+            }
+            
+            // Clear WordPress update cache
+            delete_site_transient('update_plugins');
+            
+            // Force check for updates
+            $current_version = THRIVE_MAUTIC_VERSION;
+            $github_url = 'https://api.github.com/repos/khodor04/thrive-mautic-integration/releases/latest';
+            
+            $response = wp_remote_get($github_url, array(
+                'timeout' => 30,
+                'headers' => array(
+                    'User-Agent' => 'Thrive-Mautic-Plugin'
+                )
+            ));
+            
+            if (is_wp_error($response)) {
+                wp_send_json_error('Failed to check for updates');
+                return;
+            }
+            
+            $data = json_decode(wp_remote_retrieve_body($response), true);
+            if (!$data || !isset($data['tag_name'])) {
+                wp_send_json_error('Invalid response from GitHub');
+                return;
+            }
+            
+            $latest_version = ltrim($data['tag_name'], 'v');
+            
+            if (version_compare($current_version, $latest_version, '<')) {
+                wp_send_json_success(array(
+                    'update_available' => true,
+                    'version' => $latest_version,
+                    'download_url' => $data['html_url']
+                ));
+            } else {
+                wp_send_json_success(array(
+                    'update_available' => false,
+                    'version' => $current_version
+                ));
+            }
+            
+        } catch (Exception $e) {
+            wp_send_json_error('Update check failed: ' . $e->getMessage());
+        }
+    });
 
     // AJAX handler for testing Mautic connection
     add_action('wp_ajax_test_mautic_connection', function() {
@@ -1315,6 +1413,61 @@ try {
             
         } catch (Exception $e) {
             return $transient;
+        }
+    }
+
+    // Add plugin info for updates
+    add_filter('plugins_api', 'thrive_mautic_plugin_info', 20, 3);
+    
+    function thrive_mautic_plugin_info($res, $action, $args) {
+        try {
+            if ($action !== 'plugin_information') {
+                return $res;
+            }
+            
+            if ($args->slug !== 'thrive-mautic-integration') {
+                return $res;
+            }
+            
+            $github_url = 'https://api.github.com/repos/khodor04/thrive-mautic-integration/releases/latest';
+            
+            $response = wp_remote_get($github_url, array(
+                'timeout' => 30,
+                'headers' => array(
+                    'User-Agent' => 'Thrive-Mautic-Plugin'
+                )
+            ));
+            
+            if (is_wp_error($response)) {
+                return $res;
+            }
+            
+            $data = json_decode(wp_remote_retrieve_body($response), true);
+            if (!$data || !isset($data['tag_name'])) {
+                return $res;
+            }
+            
+            $res = new stdClass();
+            $res->name = 'Thrive-Mautic Integration';
+            $res->slug = 'thrive-mautic-integration';
+            $res->version = ltrim($data['tag_name'], 'v');
+            $res->author = 'Khodor Ghalayini';
+            $res->author_profile = 'https://github.com/khodor04';
+            $res->homepage = 'https://github.com/khodor04/thrive-mautic-integration';
+            $res->requires = '5.0';
+            $res->tested = get_bloginfo('version');
+            $res->requires_php = '7.4';
+            $res->last_updated = $data['published_at'];
+            $res->sections = array(
+                'description' => 'Thrive Themes Integration With Mautic - Complete form capture and contact management solution.',
+                'changelog' => 'See GitHub releases for changelog: https://github.com/khodor04/thrive-mautic-integration/releases'
+            );
+            $res->download_link = $data['zipball_url'];
+            
+            return $res;
+            
+        } catch (Exception $e) {
+            return $res;
         }
     }
 
