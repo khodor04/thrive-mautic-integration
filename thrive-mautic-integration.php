@@ -3,7 +3,7 @@
  * Plugin Name: Thrive-Mautic Integration
  * Plugin URI: https://yourwebsite.com/thrive-mautic-integration
  * Description: Simplified Thrive Themes integration with comprehensive dashboard
- * Version: 5.0.0
+ * Version: 5.0.1
  * Author: Khodor Ghalayini
  * Author URI: https://yourwebsite.com
  * License: GPL v2 or later
@@ -18,26 +18,9 @@ if (!defined('ABSPATH')) {
 // WRAP EVERYTHING IN TRY-CATCH TO PREVENT CRASHES
 try {
     // Define plugin constants
-    define('THRIVE_MAUTIC_VERSION', '5.0.0');
+    define('THRIVE_MAUTIC_VERSION', '5.0.1');
     define('THRIVE_MAUTIC_PLUGIN_FILE', __FILE__);
     define('THRIVE_MAUTIC_PLUGIN_DIR', plugin_dir_path(__FILE__));
-
-    // Simple autoloader
-    spl_autoload_register(function($class) {
-        try {
-            if (strpos($class, 'ThriveMautic\\') === 0) {
-                $class_file = str_replace('ThriveMautic\\', '', $class);
-                $class_file = str_replace('\\', '/', $class_file);
-                $file_path = THRIVE_MAUTIC_PLUGIN_DIR . 'includes/' . $class_file . '.php';
-                
-                if (file_exists($file_path)) {
-                    require_once $file_path;
-                }
-            }
-        } catch (Exception $e) {
-            // Silent fail - don't crash
-        }
-    });
 
     // Password encryption functions
     function encrypt_password($password) {
@@ -346,51 +329,6 @@ try {
             }
         } catch (Exception $e) {
             wp_send_json_error('Connection test failed: ' . $e->getMessage());
-        }
-    });
-
-    // Initialize the plugin with error handling
-    add_action('plugins_loaded', function() {
-        try {
-            if (class_exists('ThriveMautic\\Plugin')) {
-                new ThriveMautic\Plugin();
-            }
-        } catch (Exception $e) {
-            // Silent fail - don't crash
-        }
-    });
-
-    // WordPress updater with error handling
-    add_action('init', function() {
-        try {
-            if (class_exists('ThriveMautic\\WordPressUpdater')) {
-                new ThriveMautic\WordPressUpdater();
-            }
-        } catch (Exception $e) {
-            // Silent fail - don't crash
-        }
-    });
-
-    // Force WordPress to check for updates
-    add_action('admin_init', function() {
-        try {
-            delete_transient('thrive_mautic_updater');
-            delete_site_transient('update_plugins');
-        } catch (Exception $e) {
-            // Silent fail - don't crash
-        }
-    });
-
-    // Fallback admin notice
-    add_action('admin_notices', function() {
-        try {
-            if (current_user_can('manage_options')) {
-                echo '<div class="notice notice-info is-dismissible">';
-                echo '<p><strong>Thrive-Mautic Plugin</strong> is active! <a href="' . admin_url('admin.php?page=thrive-mautic-dashboard') . '">Go to Dashboard</a> | <a href="' . admin_url('admin.php?page=thrive-mautic-settings') . '">Settings</a></p>';
-                echo '</div>';
-            }
-        } catch (Exception $e) {
-            // Silent fail - don't crash
         }
     });
 
