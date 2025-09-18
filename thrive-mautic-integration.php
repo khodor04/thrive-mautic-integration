@@ -67,19 +67,27 @@ try {
                         $encrypted_password = get_option('thrive_mautic_password', '');
                         
                         if (!empty($base_url) && !empty($username) && !empty($encrypted_password)) {
-                            // Test connection
-                            $connection_test = wp_remote_get($base_url . '/api/contacts', array(
+                            // Test connection with proper Mautic 6.x API endpoint
+                            $connection_test = wp_remote_get($base_url . '/api/contacts?limit=1', array(
                                 'headers' => array(
-                                    'Authorization' => 'Basic ' . base64_encode($username . ':' . decrypt_password($encrypted_password))
+                                    'Authorization' => 'Basic ' . base64_encode($username . ':' . decrypt_password($encrypted_password)),
+                                    'User-Agent' => 'Thrive-Mautic-Plugin/' . THRIVE_MAUTIC_VERSION
                                 ),
-                                'timeout' => 10
+                                'timeout' => 10,
+                                'sslverify' => true
                             ));
                             
-                            if (!is_wp_error($connection_test) && wp_remote_retrieve_response_code($connection_test) === 200) {
-                                $mautic_status = 'Connected';
-                                $mautic_class = 'success';
+                            if (!is_wp_error($connection_test)) {
+                                $response_code = wp_remote_retrieve_response_code($connection_test);
+                                if ($response_code === 200) {
+                                    $mautic_status = 'Connected';
+                                    $mautic_class = 'success';
+                                } else {
+                                    $mautic_status = 'Connection failed (HTTP ' . $response_code . ')';
+                                    $mautic_class = 'error';
+                                }
                             } else {
-                                $mautic_status = 'Connection failed';
+                                $mautic_status = 'Connection failed: ' . $connection_test->get_error_message();
                                 $mautic_class = 'error';
                             }
                         }
@@ -989,19 +997,25 @@ try {
             }
             
             $password = decrypt_password($encrypted_password);
-            $response = wp_remote_get($base_url . '/api/contacts', array(
+            $response = wp_remote_get($base_url . '/api/contacts?limit=1', array(
                 'headers' => array(
-                    'Authorization' => 'Basic ' . base64_encode($username . ':' . $password)
+                    'Authorization' => 'Basic ' . base64_encode($username . ':' . $password),
+                    'User-Agent' => 'Thrive-Mautic-Plugin/' . THRIVE_MAUTIC_VERSION
                 ),
-                'timeout' => 10
+                'timeout' => 10,
+                'sslverify' => true
             ));
             
             if (is_wp_error($response)) {
                 wp_send_json_error('Connection failed: ' . $response->get_error_message());
-            } elseif (wp_remote_retrieve_response_code($response) === 200) {
-                wp_send_json_success('Connection successful! Mautic is reachable.');
             } else {
-                wp_send_json_error('Connection failed. Please check your credentials and URL.');
+                $response_code = wp_remote_retrieve_response_code($response);
+                if ($response_code === 200) {
+                    wp_send_json_success('Connection successful! Mautic is reachable.');
+                } else {
+                    $response_body = wp_remote_retrieve_body($response);
+                    wp_send_json_error('Connection failed (HTTP ' . $response_code . '). Response: ' . substr($response_body, 0, 200));
+                }
             }
         } catch (Exception $e) {
             wp_send_json_error('Connection test failed: ' . $e->getMessage());
