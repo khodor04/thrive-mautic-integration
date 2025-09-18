@@ -3,7 +3,7 @@
  * Plugin Name: Thrive-Mautic Integration
  * Plugin URI: https://yourwebsite.com/thrive-mautic-integration
  * Description: Simplified Thrive Themes integration with comprehensive dashboard
- * Version: 5.0.3
+ * Version: 5.0.4
  * Author: Khodor Ghalayini
  * Author URI: https://yourwebsite.com
  * License: GPL v2 or later
@@ -18,7 +18,7 @@ if (!defined('ABSPATH')) {
 // WRAP EVERYTHING IN TRY-CATCH TO PREVENT CRASHES
 try {
     // Define plugin constants
-    define('THRIVE_MAUTIC_VERSION', '5.0.3');
+    define('THRIVE_MAUTIC_VERSION', '5.0.4');
     define('THRIVE_MAUTIC_PLUGIN_FILE', __FILE__);
     define('THRIVE_MAUTIC_PLUGIN_DIR', plugin_dir_path(__FILE__));
 
@@ -46,6 +46,10 @@ try {
     // Simple admin menu registration
     add_action('admin_menu', function() {
         try {
+            // Check if user has proper capabilities
+            if (!current_user_can('manage_options')) {
+                return;
+            }
             // Main Dashboard Menu
             add_menu_page(
                 'Thrive-Mautic Dashboard',
@@ -141,6 +145,7 @@ try {
                         echo '<div style="display: flex; gap: 10px; flex-wrap: wrap;">';
                         echo '<a href="' . admin_url('admin.php?page=thrive-mautic-settings') . '" class="button button-primary">Configure Mautic Settings</a>';
                         echo '<a href="' . admin_url('admin.php?page=thrive-mautic-submissions') . '" class="button">View Submissions</a>';
+                        echo '<a href="' . admin_url('admin.php?page=thrive-mautic-help') . '" class="button">Help & Setup Guide</a>';
                         echo '<a href="' . admin_url('admin.php?page=thrive-mautic-settings') . '" class="button">Test Connection</a>';
                         echo '</div>';
                         echo '</div>';
@@ -187,14 +192,21 @@ try {
                                 );
                                 echo '<div class="notice notice-success"><p>Submission queued for retry!</p></div>';
                             } elseif ($_POST['action'] === 'clear_logs') {
-                                $wpdb->query("DELETE FROM {$wpdb->prefix}thrive_mautic_logs WHERE created_at < DATE_SUB(NOW(), INTERVAL 30 DAY)");
+                                // Use prepared statement to prevent SQL injection
+                                $wpdb->query($wpdb->prepare(
+                                    "DELETE FROM {$wpdb->prefix}thrive_mautic_logs WHERE created_at < DATE_SUB(NOW(), INTERVAL %d DAY)",
+                                    30
+                                ));
                                 echo '<div class="notice notice-success"><p>Old logs cleared!</p></div>';
                             }
                         }
                         
-                        // Get submissions
+                        // Get submissions with prepared statement
                         $submissions = $wpdb->get_results(
-                            "SELECT * FROM $table_name ORDER BY created_at DESC LIMIT 50"
+                            $wpdb->prepare(
+                                "SELECT * FROM $table_name ORDER BY created_at DESC LIMIT %d",
+                                50
+                            )
                         );
                         
                         echo '<div class="wrap">';
@@ -277,6 +289,247 @@ try {
                     } catch (Exception $e) {
                         echo '<div class="wrap"><h1>Thrive-Mautic Submissions</h1>';
                         echo '<div class="notice notice-error"><p>Submissions error occurred. Please check error logs.</p></div>';
+                        echo '</div>';
+                    }
+                }
+            );
+            
+            // Help Submenu
+            add_submenu_page(
+                'thrive-mautic-dashboard',
+                'Help & Setup',
+                'Help & Setup',
+                'manage_options',
+                'thrive-mautic-help',
+                function() {
+                    try {
+                        echo '<div class="wrap">';
+                        echo '<h1>Thrive-Mautic Integration Help & Setup Guide</h1>';
+                        
+                        // Table of Contents
+                        echo '<div style="background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin: 20px 0;">';
+                        echo '<h2>📋 Table of Contents</h2>';
+                        echo '<ol>';
+                        echo '<li><a href="#mautic-setup">Mautic Setup & Configuration</a></li>';
+                        echo '<li><a href="#thrive-architect">Thrive Architect Forms</a></li>';
+                        echo '<li><a href="#thrive-lightboxes">Thrive Lightboxes</a></li>';
+                        echo '<li><a href="#thrive-leads">Thrive Leads</a></li>';
+                        echo '<li><a href="#thrive-quiz">Thrive Quiz Builder</a></li>';
+                        echo '<li><a href="#segments">Mautic Segments Setup</a></li>';
+                        echo '<li><a href="#troubleshooting">Troubleshooting</a></li>';
+                        echo '</ol>';
+                        echo '</div>';
+                        
+                        // Mautic Setup
+                        echo '<div id="mautic-setup" style="background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin: 20px 0;">';
+                        echo '<h2>🔧 Mautic Setup & Configuration</h2>';
+                        echo '<h3>Step 1: Get Your Mautic Credentials</h3>';
+                        echo '<ol>';
+                        echo '<li>Log into your Mautic dashboard</li>';
+                        echo '<li>Go to <strong>Settings → Configuration → API Settings</strong></li>';
+                        echo '<li>Enable <strong>API</strong> if not already enabled</li>';
+                        echo '<li>Note down your <strong>Mautic Base URL</strong> (e.g., https://your-mautic-site.com)</li>';
+                        echo '<li>Create a new user or use existing admin credentials</li>';
+                        echo '<li>Make sure the user has <strong>API access</strong> permissions</li>';
+                        echo '</ol>';
+                        
+                        echo '<h3>Step 2: Configure Plugin Settings</h3>';
+                        echo '<ol>';
+                        echo '<li>Go to <strong>Thrive-Mautic → Settings</strong> in WordPress admin</li>';
+                        echo '<li>Enter your <strong>Mautic Base URL</strong></li>';
+                        echo '<li>Enter your <strong>Mautic Username</strong></li>';
+                        echo '<li>Enter your <strong>Mautic Password</strong></li>';
+                        echo '<li>Click <strong>Test Connection</strong> to verify</li>';
+                        echo '<li>Click <strong>Save Settings</strong></li>';
+                        echo '</ol>';
+                        echo '</div>';
+                        
+                        // Thrive Architect
+                        echo '<div id="thrive-architect" style="background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin: 20px 0;">';
+                        echo '<h2>📝 Thrive Architect Forms</h2>';
+                        echo '<h3>Step 1: Create Your Form</h3>';
+                        echo '<ol>';
+                        echo '<li>Edit any page/post with Thrive Architect</li>';
+                        echo '<li>Add a <strong>Contact Form</strong> element</li>';
+                        echo '<li>Configure your form fields (Email is required)</li>';
+                        echo '<li>Add fields like: Name, Phone, Company (optional)</li>';
+                        echo '</ol>';
+                        
+                        echo '<h3>Step 2: Form Field Setup</h3>';
+                        echo '<p><strong>Required Field Names (for automatic detection):</strong></p>';
+                        echo '<ul>';
+                        echo '<li><code>email</code> - Email address (required)</li>';
+                        echo '<li><code>name</code> or <code>firstname</code> - First name</li>';
+                        echo '<li><code>phone</code> - Phone number</li>';
+                        echo '<li><code>company</code> - Company name</li>';
+                        echo '</ul>';
+                        
+                        echo '<h3>Step 3: Test Your Form</h3>';
+                        echo '<ol>';
+                        echo '<li>Submit a test form on your website</li>';
+                        echo '<li>Go to <strong>Thrive-Mautic → Submissions</strong></li>';
+                        echo '<li>Check if the submission appears in the list</li>';
+                        echo '<li>Wait 5 minutes for background processing</li>';
+                        echo '<li>Check your Mautic contacts to see if the contact was created</li>';
+                        echo '</ol>';
+                        echo '</div>';
+                        
+                        // Thrive Lightboxes
+                        echo '<div id="thrive-lightboxes" style="background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin: 20px 0;">';
+                        echo '<h2>💡 Thrive Lightboxes</h2>';
+                        echo '<h3>Step 1: Create Your Lightbox</h3>';
+                        echo '<ol>';
+                        echo '<li>Go to <strong>Thrive Dashboard → Lightboxes</strong></li>';
+                        echo '<li>Create a new lightbox or edit existing</li>';
+                        echo '<li>Add a <strong>Contact Form</strong> element</li>';
+                        echo '<li>Configure your form fields (Email is required)</li>';
+                        echo '</ol>';
+                        
+                        echo '<h3>Step 2: Configure Lightbox Trigger</h3>';
+                        echo '<ol>';
+                        echo '<li>Set up your lightbox trigger (button, image, etc.)</li>';
+                        echo '<li>Make sure the lightbox contains a form with email field</li>';
+                        echo '<li>Test the lightbox on your website</li>';
+                        echo '</ol>';
+                        
+                        echo '<h3>Step 3: Verify Integration</h3>';
+                        echo '<ol>';
+                        echo '<li>Submit a form through the lightbox</li>';
+                        echo '<li>Check <strong>Thrive-Mautic → Submissions</strong></li>';
+                        echo '<li>Look for form type: <code>thrive_lightbox</code></li>';
+                        echo '</ol>';
+                        echo '</div>';
+                        
+                        // Thrive Leads
+                        echo '<div id="thrive-leads" style="background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin: 20px 0;">';
+                        echo '<h2>🎯 Thrive Leads</h2>';
+                        echo '<h3>Step 1: Create Lead Group</h3>';
+                        echo '<ol>';
+                        echo '<li>Go to <strong>Thrive Dashboard → Lead Groups</strong></li>';
+                        echo '<li>Create a new lead group</li>';
+                        echo '<li>Add a form with email field (required)</li>';
+                        echo '<li>Configure additional fields as needed</li>';
+                        echo '</ol>';
+                        
+                        echo '<h3>Step 2: Set Up Lead Forms</h3>';
+                        echo '<ol>';
+                        echo '<li>Create different form types (ribbon, popup, etc.)</li>';
+                        echo '<li>Make sure each form has an email field</li>';
+                        echo '<li>Test each form type</li>';
+                        echo '</ol>';
+                        
+                        echo '<h3>Step 3: Verify Integration</h3>';
+                        echo '<ol>';
+                        echo '<li>Submit forms through different lead types</li>';
+                        echo '<li>Check <strong>Thrive-Mautic → Submissions</strong></li>';
+                        echo '<li>Look for form type: <code>thrive_leads</code></li>';
+                        echo '</ol>';
+                        echo '</div>';
+                        
+                        // Thrive Quiz
+                        echo '<div id="thrive-quiz" style="background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin: 20px 0;">';
+                        echo '<h2>🧩 Thrive Quiz Builder</h2>';
+                        echo '<h3>Step 1: Create Your Quiz</h3>';
+                        echo '<ol>';
+                        echo '<li>Go to <strong>Thrive Dashboard → Quiz Builder</strong></li>';
+                        echo '<li>Create a new quiz</li>';
+                        echo '<li>Add questions and answers</li>';
+                        echo '<li>Set up quiz completion form with email field</li>';
+                        echo '</ol>';
+                        
+                        echo '<h3>Step 2: Configure Quiz Settings</h3>';
+                        echo '<ol>';
+                        echo '<li>Set up quiz completion form</li>';
+                        echo '<li>Make sure email field is included</li>';
+                        echo '<li>Add any additional fields (name, phone, etc.)</li>';
+                        echo '</ol>';
+                        
+                        echo '<h3>Step 3: Test Quiz Integration</h3>';
+                        echo '<ol>';
+                        echo '<li>Complete a quiz on your website</li>';
+                        echo '<li>Check <strong>Thrive-Mautic → Submissions</strong></li>';
+                        echo '<li>Look for form type: <code>thrive_quiz</code></li>';
+                        echo '</ol>';
+                        echo '</div>';
+                        
+                        // Segments
+                        echo '<div id="segments" style="background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin: 20px 0;">';
+                        echo '<h2>🏷️ Mautic Segments Setup</h2>';
+                        echo '<h3>Step 1: Create Segments in Mautic</h3>';
+                        echo '<ol>';
+                        echo '<li>Go to <strong>Mautic → Segments</strong></li>';
+                        echo '<li>Create segments for different form types:</li>';
+                        echo '<ul>';
+                        echo '<li><code>thrive-architect</code> - For Thrive Architect forms</li>';
+                        echo '<li><code>thrive-lightbox</code> - For Thrive Lightboxes</li>';
+                        echo '<li><code>thrive-leads</code> - For Thrive Leads</li>';
+                        echo '<li><code>thrive-quiz</code> - For Thrive Quiz Builder</li>';
+                        echo '</ul>';
+                        echo '<li>Note down the <strong>Segment ID</strong> for each segment</li>';
+                        echo '</ol>';
+                        
+                        echo '<h3>Step 2: Configure Segment Assignment</h3>';
+                        echo '<p>Currently, the plugin automatically assigns contacts to segments based on form type. To customize this:</p>';
+                        echo '<ol>';
+                        echo '<li>Edit the plugin code (advanced users only)</li>';
+                        echo '<li>Modify the <code>thrive_mautic_add_to_segment()</code> function</li>';
+                        echo '<li>Add your custom segment logic</li>';
+                        echo '</ol>';
+                        echo '</div>';
+                        
+                        // Troubleshooting
+                        echo '<div id="troubleshooting" style="background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin: 20px 0;">';
+                        echo '<h2>🔧 Troubleshooting</h2>';
+                        echo '<h3>Common Issues & Solutions</h3>';
+                        
+                        echo '<h4>❌ Form submissions not appearing in Mautic</h4>';
+                        echo '<ol>';
+                        echo '<li>Check <strong>Thrive-Mautic → Submissions</strong> for pending/failed submissions</li>';
+                        echo '<li>Verify Mautic credentials in <strong>Settings</strong></li>';
+                        echo '<li>Test Mautic connection</li>';
+                        echo '<li>Check if background processing is working (wait 5 minutes)</li>';
+                        echo '<li>Look at error messages in submissions table</li>';
+                        echo '</ol>';
+                        
+                        echo '<h4>❌ Plugin not capturing forms</h4>';
+                        echo '<ol>';
+                        echo '<li>Make sure forms have email fields</li>';
+                        echo '<li>Check field names (email, name, phone, company)</li>';
+                        echo '<li>Test with different form types</li>';
+                        echo '<li>Check WordPress error logs</li>';
+                        echo '</ol>';
+                        
+                        echo '<h4>❌ Mautic connection test fails</h4>';
+                        echo '<ol>';
+                        echo '<li>Verify Mautic URL (include https://)</li>';
+                        echo '<li>Check username and password</li>';
+                        echo '<li>Ensure API is enabled in Mautic</li>';
+                        echo '<li>Check if user has API permissions</li>';
+                        echo '</ol>';
+                        
+                        echo '<h4>❌ Website crashes after plugin activation</h4>';
+                        echo '<ol>';
+                        echo '<li>Deactivate plugin immediately</li>';
+                        echo '<li>Check WordPress error logs</li>';
+                        echo '<li>Update to latest plugin version</li>';
+                        echo '<li>Contact support if issue persists</li>';
+                        echo '</ol>';
+                        echo '</div>';
+                        
+                        // Support
+                        echo '<div style="background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin: 20px 0;">';
+                        echo '<h2>🆘 Support & Resources</h2>';
+                        echo '<p><strong>Plugin Version:</strong> ' . THRIVE_MAUTIC_VERSION . '</p>';
+                        echo '<p><strong>GitHub Repository:</strong> <a href="https://github.com/khodor04/thrive-mautic-integration" target="_blank">https://github.com/khodor04/thrive-mautic-integration</a></p>';
+                        echo '<p><strong>Mautic Documentation:</strong> <a href="https://docs.mautic.org/" target="_blank">https://docs.mautic.org/</a></p>';
+                        echo '<p><strong>Thrive Themes Documentation:</strong> <a href="https://thrivethemes.com/help/" target="_blank">https://thrivethemes.com/help/</a></p>';
+                        echo '</div>';
+                        
+                        echo '</div>';
+                        
+                    } catch (Exception $e) {
+                        echo '<div class="wrap"><h1>Thrive-Mautic Help</h1>';
+                        echo '<div class="notice notice-error"><p>Help page error occurred. Please check error logs.</p></div>';
                         echo '</div>';
                     }
                 }
@@ -440,6 +693,9 @@ try {
     add_action('wp_ajax_tve_api_form_submit', 'thrive_mautic_capture_form', 5);
     add_action('wp_ajax_nopriv_tve_api_form_submit', 'thrive_mautic_capture_form', 5);
     
+    // Thrive Lightboxes form capture
+    add_action('tve_lightbox_submit', 'thrive_mautic_capture_lightbox_form', 10, 2);
+    
     // Thrive Leads form capture
     add_action('tve_leads_form_submit', 'thrive_mautic_capture_leads_form', 10, 2);
     
@@ -494,6 +750,26 @@ try {
         }
     }
     
+    function thrive_mautic_capture_lightbox_form($lightbox_data, $form_type) {
+        try {
+            if (!isset($lightbox_data['email']) || empty($lightbox_data['email'])) {
+                return;
+            }
+            
+            thrive_mautic_queue_submission(array(
+                'form_id' => isset($lightbox_data['form_id']) ? $lightbox_data['form_id'] : 'lightbox_' . $form_type,
+                'form_type' => 'thrive_lightbox',
+                'email' => sanitize_email($lightbox_data['email']),
+                'name' => isset($lightbox_data['name']) ? sanitize_text_field($lightbox_data['name']) : '',
+                'phone' => isset($lightbox_data['phone']) ? sanitize_text_field($lightbox_data['phone']) : '',
+                'company' => isset($lightbox_data['company']) ? sanitize_text_field($lightbox_data['company']) : ''
+            ));
+            
+        } catch (Exception $e) {
+            thrive_mautic_log('error', 'Lightbox form capture error: ' . $e->getMessage());
+        }
+    }
+    
     function thrive_mautic_capture_leads_form($lead_data, $form_type) {
         try {
             if (!isset($lead_data['email']) || empty($lead_data['email'])) {
@@ -534,21 +810,46 @@ try {
         }
     }
     
+    // Rate limiting function
+    function thrive_mautic_check_rate_limit($email) {
+        try {
+            global $wpdb;
+            $table_name = $wpdb->prefix . 'thrive_mautic_submissions';
+            
+            // Check if same email submitted in last 5 minutes
+            $recent_submission = $wpdb->get_var($wpdb->prepare(
+                "SELECT COUNT(*) FROM $table_name WHERE email = %s AND created_at > DATE_SUB(NOW(), INTERVAL 5 MINUTE)",
+                $email
+            ));
+            
+            return $recent_submission < 3; // Allow max 3 submissions per 5 minutes per email
+            
+        } catch (Exception $e) {
+            return true; // Allow submission if rate limit check fails
+        }
+    }
+
     // Queue submission for background processing
     function thrive_mautic_queue_submission($data) {
         try {
+            // Rate limiting check
+            if (!thrive_mautic_check_rate_limit($data['email'])) {
+                thrive_mautic_log('warning', 'Rate limit exceeded for email: ' . $data['email']);
+                return;
+            }
+            
             global $wpdb;
             $table_name = $wpdb->prefix . 'thrive_mautic_submissions';
             
             $wpdb->insert(
                 $table_name,
                 array(
-                    'form_id' => $data['form_id'],
-                    'form_type' => $data['form_type'],
-                    'email' => $data['email'],
-                    'name' => $data['name'],
-                    'phone' => $data['phone'],
-                    'company' => $data['company'],
+                    'form_id' => sanitize_text_field($data['form_id']),
+                    'form_type' => sanitize_text_field($data['form_type']),
+                    'email' => sanitize_email($data['email']),
+                    'name' => sanitize_text_field($data['name']),
+                    'phone' => sanitize_text_field($data['phone']),
+                    'company' => sanitize_text_field($data['company']),
                     'status' => 'pending',
                     'created_at' => current_time('mysql')
                 )
@@ -564,6 +865,12 @@ try {
     // AJAX handler for testing Mautic connection
     add_action('wp_ajax_test_mautic_connection', function() {
         try {
+            // Check user capabilities
+            if (!current_user_can('manage_options')) {
+                wp_send_json_error('Insufficient permissions');
+                return;
+            }
+            
             if (!wp_verify_nonce($_POST['nonce'], 'test_mautic_connection')) {
                 wp_send_json_error('Invalid nonce');
                 return;
@@ -695,11 +1002,28 @@ try {
     // Mautic API functions
     function thrive_mautic_create_contact($email, $name = '', $phone = '', $company = '') {
         try {
+            // Validate and sanitize inputs
+            $email = sanitize_email($email);
+            if (!is_email($email)) {
+                thrive_mautic_log('error', 'Invalid email address: ' . $email);
+                return false;
+            }
+            
+            $name = sanitize_text_field($name);
+            $phone = sanitize_text_field($phone);
+            $company = sanitize_text_field($company);
+            
             $base_url = get_option('thrive_mautic_base_url', '');
             $username = get_option('thrive_mautic_username', '');
             $encrypted_password = get_option('thrive_mautic_password', '');
             
             if (empty($base_url) || empty($username) || empty($encrypted_password)) {
+                return false;
+            }
+            
+            // Validate URL
+            if (!filter_var($base_url, FILTER_VALIDATE_URL)) {
+                thrive_mautic_log('error', 'Invalid Mautic URL: ' . $base_url);
                 return false;
             }
             
@@ -716,10 +1040,12 @@ try {
             $response = wp_remote_post($base_url . '/api/contacts/new', array(
                 'headers' => array(
                     'Authorization' => 'Basic ' . $auth,
-                    'Content-Type' => 'application/json'
+                    'Content-Type' => 'application/json',
+                    'User-Agent' => 'Thrive-Mautic-Plugin/' . THRIVE_MAUTIC_VERSION
                 ),
                 'body' => json_encode($contact_data),
-                'timeout' => 30
+                'timeout' => 30,
+                'sslverify' => true
             ));
             
             if (is_wp_error($response)) {
@@ -750,11 +1076,26 @@ try {
     
     function thrive_mautic_add_to_segment($contact_id, $segment_id) {
         try {
+            // Validate inputs
+            $contact_id = intval($contact_id);
+            $segment_id = intval($segment_id);
+            
+            if ($contact_id <= 0 || $segment_id <= 0) {
+                thrive_mautic_log('error', 'Invalid contact_id or segment_id: ' . $contact_id . ', ' . $segment_id);
+                return false;
+            }
+            
             $base_url = get_option('thrive_mautic_base_url', '');
             $username = get_option('thrive_mautic_username', '');
             $encrypted_password = get_option('thrive_mautic_password', '');
             
-            if (empty($base_url) || empty($username) || empty($encrypted_password) || empty($segment_id)) {
+            if (empty($base_url) || empty($username) || empty($encrypted_password)) {
+                return false;
+            }
+            
+            // Validate URL
+            if (!filter_var($base_url, FILTER_VALIDATE_URL)) {
+                thrive_mautic_log('error', 'Invalid Mautic URL: ' . $base_url);
                 return false;
             }
             
@@ -764,9 +1105,11 @@ try {
             $response = wp_remote_post($base_url . '/api/segments/' . $segment_id . '/contact/' . $contact_id . '/add', array(
                 'headers' => array(
                     'Authorization' => 'Basic ' . $auth,
-                    'Content-Type' => 'application/json'
+                    'Content-Type' => 'application/json',
+                    'User-Agent' => 'Thrive-Mautic-Plugin/' . THRIVE_MAUTIC_VERSION
                 ),
-                'timeout' => 30
+                'timeout' => 30,
+                'sslverify' => true
             ));
             
             if (is_wp_error($response)) {
@@ -796,9 +1139,13 @@ try {
             global $wpdb;
             $table_name = $wpdb->prefix . 'thrive_mautic_submissions';
             
-            // Get pending submissions (limit to 10 per run)
+            // Get pending submissions (limit to 10 per run) with prepared statement
             $pending = $wpdb->get_results(
-                "SELECT * FROM $table_name WHERE status = 'pending' ORDER BY created_at ASC LIMIT 10"
+                $wpdb->prepare(
+                    "SELECT * FROM $table_name WHERE status = %s ORDER BY created_at ASC LIMIT %d",
+                    'pending',
+                    10
+                )
             );
             
             foreach ($pending as $submission) {
@@ -1023,9 +1370,24 @@ try {
 } catch (Exception $e) {
     // ULTIMATE FALLBACK - If ANYTHING fails, just deactivate silently
     add_action('admin_notices', function() {
-        echo '<div class="notice notice-error"><p><strong>Thrive-Mautic Plugin:</strong> Plugin has been disabled due to an error.</p></div>';
+        echo '<div class="notice notice-error"><p><strong>Thrive-Mautic Plugin:</strong> Plugin has been disabled due to an error. Please check error logs.</p></div>';
     });
+    
+    // Log the error
+    error_log('Thrive-Mautic Plugin Fatal Error: ' . $e->getMessage());
     
     // Deactivate the plugin
     deactivate_plugins(plugin_basename(__FILE__));
 }
+
+// Additional security: Register shutdown function for critical errors
+register_shutdown_function(function() {
+    $error = error_get_last();
+    if ($error && $error['type'] === E_ERROR) {
+        // Check if error is related to our plugin
+        if (strpos($error['file'], 'thrive-mautic-integration') !== false) {
+            error_log('Thrive-Mautic Plugin Critical Error: ' . $error['message']);
+            // Don't deactivate automatically on shutdown to avoid infinite loops
+        }
+    }
+});
