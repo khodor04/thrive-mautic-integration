@@ -3,7 +3,7 @@
  * Plugin Name: Thrive-Mautic Integration
  * Plugin URI: https://yourwebsite.com/thrive-mautic-integration
  * Description: Simplified Thrive Themes integration with comprehensive dashboard
- * Version: 5.0.2
+ * Version: 5.0.3
  * Author: Khodor Ghalayini
  * Author URI: https://yourwebsite.com
  * License: GPL v2 or later
@@ -18,7 +18,7 @@ if (!defined('ABSPATH')) {
 // WRAP EVERYTHING IN TRY-CATCH TO PREVENT CRASHES
 try {
     // Define plugin constants
-    define('THRIVE_MAUTIC_VERSION', '5.0.2');
+    define('THRIVE_MAUTIC_VERSION', '5.0.3');
     define('THRIVE_MAUTIC_PLUGIN_FILE', __FILE__);
     define('THRIVE_MAUTIC_PLUGIN_DIR', plugin_dir_path(__FILE__));
 
@@ -907,6 +907,104 @@ try {
             echo '</script>';
             echo '<!-- End Mautic Tracking Code -->';
             
+        } catch (Exception $e) {
+            // Silent fail - don't crash
+        }
+    });
+
+    // WordPress updater with error handling
+    add_action('init', function() {
+        try {
+            // Check for updates every 12 hours
+            $last_check = get_transient('thrive_mautic_updater_check');
+            if (!$last_check) {
+                thrive_mautic_check_for_updates();
+                set_transient('thrive_mautic_updater_check', time(), 12 * HOUR_IN_SECONDS);
+            }
+        } catch (Exception $e) {
+            // Silent fail - don't crash
+        }
+    });
+
+    // Check for updates from GitHub
+    function thrive_mautic_check_for_updates() {
+        try {
+            $current_version = THRIVE_MAUTIC_VERSION;
+            $github_url = 'https://api.github.com/repos/khodor04/thrive-mautic-integration/releases/latest';
+            
+            $response = wp_remote_get($github_url, array(
+                'timeout' => 30,
+                'headers' => array(
+                    'User-Agent' => 'Thrive-Mautic-Plugin'
+                )
+            ));
+            
+            if (is_wp_error($response)) {
+                return false;
+            }
+            
+            $data = json_decode(wp_remote_retrieve_body($response), true);
+            if (!$data || !isset($data['tag_name'])) {
+                return false;
+            }
+            
+            $latest_version = ltrim($data['tag_name'], 'v');
+            
+            // Compare versions
+            if (version_compare($current_version, $latest_version, '<')) {
+                // Update available
+                set_transient('thrive_mautic_update_available', array(
+                    'version' => $latest_version,
+                    'download_url' => $data['zipball_url'],
+                    'release_url' => $data['html_url']
+                ), 24 * HOUR_IN_SECONDS);
+                
+                // Force WordPress to check for updates
+                delete_site_transient('update_plugins');
+                
+                return true;
+            }
+            
+            return false;
+            
+        } catch (Exception $e) {
+            thrive_mautic_log('error', 'Update check error: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    // Add update notification
+    add_action('admin_notices', function() {
+        try {
+            $update_info = get_transient('thrive_mautic_update_available');
+            if ($update_info && current_user_can('manage_options')) {
+                echo '<div class="notice notice-warning is-dismissible">';
+                echo '<p><strong>Thrive-Mautic Plugin:</strong> A new version (' . esc_html($update_info['version']) . ') is available! ';
+                echo '<a href="' . esc_url($update_info['release_url']) . '" target="_blank">Download from GitHub</a></p>';
+                echo '</div>';
+            }
+        } catch (Exception $e) {
+            // Silent fail - don't crash
+        }
+    });
+
+    // Auto-update filter
+    add_filter('auto_update_plugin', function($update, $item) {
+        try {
+            if ($item->slug === 'thrive-mautic-integration' && get_option('thrive_mautic_auto_update', true)) {
+                return true;
+            }
+            return $update;
+        } catch (Exception $e) {
+            return $update;
+        }
+    }, 10, 2);
+
+    // Force WordPress to check for updates
+    add_action('admin_init', function() {
+        try {
+            delete_transient('thrive_mautic_updater');
+            delete_site_transient('update_plugins');
         } catch (Exception $e) {
             // Silent fail - don't crash
         }
