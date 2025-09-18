@@ -3,7 +3,7 @@
  * Plugin Name: Thrive-Mautic Integration
  * Plugin URI: https://yourwebsite.com/thrive-mautic-integration
  * Description: Thrive Themes Integration With Mautic
- * Version: 5.7.2
+ * Version: 5.7.3
  * Author: Khodor Ghalayini
  * Author URI: https://yourwebsite.com
  * License: GPL v2 or later
@@ -18,7 +18,7 @@ if (!defined('ABSPATH')) {
 // WRAP EVERYTHING IN TRY-CATCH TO PREVENT CRASHES
 try {
     // Define plugin constants
-    define('THRIVE_MAUTIC_VERSION', '5.7.2');
+    define('THRIVE_MAUTIC_VERSION', '5.7.3');
     define('THRIVE_MAUTIC_PLUGIN_FILE', __FILE__);
     define('THRIVE_MAUTIC_PLUGIN_DIR', plugin_dir_path(__FILE__));
 
@@ -240,6 +240,7 @@ try {
                         echo '<th>Form Type</th>';
                         echo '<th>Email</th>';
                         echo '<th>Name</th>';
+                        echo '<th>Segment</th>';
                         echo '<th>Status</th>';
                         echo '<th>Mautic ID</th>';
                         echo '<th>Created</th>';
@@ -270,6 +271,7 @@ try {
                             echo '<td>' . esc_html($submission->form_type) . '</td>';
                             echo '<td>' . esc_html($submission->email) . '</td>';
                             echo '<td>' . esc_html($submission->name) . '</td>';
+                            echo '<td>' . esc_html($submission->segment_id) . '</td>';
                             echo '<td style="' . $status_class . '">' . esc_html(ucfirst($submission->status)) . '</td>';
                             echo '<td>' . esc_html($submission->mautic_contact_id) . '</td>';
                             echo '<td>' . esc_html($submission->created_at) . '</td>';
@@ -762,11 +764,12 @@ try {
             $form_data = $_POST['form_data'];
             $form_id = isset($_POST['form_id']) ? sanitize_text_field($_POST['form_id']) : 'unknown';
             
-            // Extract email and name
+            // Extract email, name, phone, company, and custom segment
             $email = '';
             $name = '';
             $phone = '';
             $company = '';
+            $custom_segment = '';
             
             foreach ($form_data as $field) {
                 if (isset($field['name']) && isset($field['value'])) {
@@ -781,18 +784,24 @@ try {
                         $phone = $field_value;
                     } elseif (strpos($field_name, 'company') !== false) {
                         $company = $field_value;
+                    } elseif ($field_name === 'thrive_mautic_segment') {
+                        $custom_segment = $field_value;
                     }
                 }
             }
             
             if (!empty($email)) {
+                // Determine segment ID
+                $segment_id = !empty($custom_segment) ? $custom_segment : 'thrive_architect';
+                
                 thrive_mautic_queue_submission(array(
                     'form_id' => $form_id,
                     'form_type' => 'thrive_architect',
                     'email' => $email,
                     'name' => $name,
                     'phone' => $phone,
-                    'company' => $company
+                    'company' => $company,
+                    'segment_id' => $segment_id
                 ));
             }
             
@@ -807,13 +816,18 @@ try {
                 return;
             }
             
+            // Check for custom segment
+            $custom_segment = isset($lightbox_data['thrive_mautic_segment']) ? sanitize_text_field($lightbox_data['thrive_mautic_segment']) : '';
+            $segment_id = !empty($custom_segment) ? $custom_segment : 'thrive_lightbox';
+            
             thrive_mautic_queue_submission(array(
                 'form_id' => isset($lightbox_data['form_id']) ? $lightbox_data['form_id'] : 'lightbox_' . $form_type,
                 'form_type' => 'thrive_lightbox',
                 'email' => sanitize_email($lightbox_data['email']),
                 'name' => isset($lightbox_data['name']) ? sanitize_text_field($lightbox_data['name']) : '',
                 'phone' => isset($lightbox_data['phone']) ? sanitize_text_field($lightbox_data['phone']) : '',
-                'company' => isset($lightbox_data['company']) ? sanitize_text_field($lightbox_data['company']) : ''
+                'company' => isset($lightbox_data['company']) ? sanitize_text_field($lightbox_data['company']) : '',
+                'segment_id' => $segment_id
             ));
             
         } catch (Exception $e) {
@@ -827,13 +841,18 @@ try {
                 return;
             }
             
+            // Check for custom segment
+            $custom_segment = isset($lead_data['thrive_mautic_segment']) ? sanitize_text_field($lead_data['thrive_mautic_segment']) : '';
+            $segment_id = !empty($custom_segment) ? $custom_segment : 'thrive_leads';
+            
             thrive_mautic_queue_submission(array(
                 'form_id' => isset($lead_data['form_id']) ? $lead_data['form_id'] : 'leads_' . $form_type,
                 'form_type' => 'thrive_leads',
                 'email' => sanitize_email($lead_data['email']),
                 'name' => isset($lead_data['name']) ? sanitize_text_field($lead_data['name']) : '',
                 'phone' => isset($lead_data['phone']) ? sanitize_text_field($lead_data['phone']) : '',
-                'company' => isset($lead_data['company']) ? sanitize_text_field($lead_data['company']) : ''
+                'company' => isset($lead_data['company']) ? sanitize_text_field($lead_data['company']) : '',
+                'segment_id' => $segment_id
             ));
             
         } catch (Exception $e) {
@@ -847,13 +866,18 @@ try {
                 return;
             }
             
+            // Check for custom segment
+            $custom_segment = isset($user_data['thrive_mautic_segment']) ? sanitize_text_field($user_data['thrive_mautic_segment']) : '';
+            $segment_id = !empty($custom_segment) ? $custom_segment : 'thrive_quiz';
+            
             thrive_mautic_queue_submission(array(
                 'form_id' => 'quiz_' . $quiz_id,
                 'form_type' => 'thrive_quiz',
                 'email' => sanitize_email($user_data['email']),
                 'name' => isset($user_data['name']) ? sanitize_text_field($user_data['name']) : '',
                 'phone' => isset($user_data['phone']) ? sanitize_text_field($user_data['phone']) : '',
-                'company' => isset($user_data['company']) ? sanitize_text_field($user_data['company']) : ''
+                'company' => isset($user_data['company']) ? sanitize_text_field($user_data['company']) : '',
+                'segment_id' => $segment_id
             ));
             
         } catch (Exception $e) {
@@ -901,6 +925,7 @@ try {
                     'name' => sanitize_text_field($data['name']),
                     'phone' => sanitize_text_field($data['phone']),
                     'company' => sanitize_text_field($data['company']),
+                    'segment_id' => sanitize_text_field($data['segment_id']),
                     'status' => 'pending',
                     'created_at' => current_time('mysql')
                 )
@@ -1048,7 +1073,8 @@ try {
                 PRIMARY KEY (id),
                 KEY form_id (form_id),
                 KEY email (email),
-                KEY status (status)
+                KEY status (status),
+                KEY segment_id (segment_id)
             ) $charset_collate;";
             
             require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
@@ -1191,8 +1217,97 @@ try {
         }
     }
     
+    function thrive_mautic_ensure_segment_exists($segment_name) {
+        try {
+            $base_url = get_option('thrive_mautic_base_url', '');
+            $username = get_option('thrive_mautic_username', '');
+            $encrypted_password = get_option('thrive_mautic_password', '');
+            
+            if (empty($base_url) || empty($username) || empty($encrypted_password)) {
+                return false;
+            }
+            
+            $password = decrypt_password($encrypted_password);
+            $auth = base64_encode($username . ':' . $password);
+            
+            // First, check if segment exists
+            $response = wp_remote_get($base_url . '/api/segments?search=' . urlencode($segment_name), array(
+                'headers' => array(
+                    'Authorization' => 'Basic ' . $auth,
+                    'User-Agent' => 'Thrive-Mautic-Plugin/' . THRIVE_MAUTIC_VERSION
+                ),
+                'timeout' => 30,
+                'sslverify' => true
+            ));
+            
+            if (is_wp_error($response)) {
+                return false;
+            }
+            
+            $response_code = wp_remote_retrieve_response_code($response);
+            if ($response_code === 200) {
+                $data = json_decode(wp_remote_retrieve_body($response), true);
+                if (isset($data['segments']) && !empty($data['segments'])) {
+                    // Segment exists, return its ID
+                    foreach ($data['segments'] as $segment) {
+                        if ($segment['name'] === $segment_name) {
+                            return $segment['id'];
+                        }
+                    }
+                }
+            }
+            
+            // Segment doesn't exist, create it
+            $segment_data = array(
+                'name' => $segment_name,
+                'description' => 'Auto-created by Thrive-Mautic Plugin',
+                'isPublished' => true
+            );
+            
+            $response = wp_remote_post($base_url . '/api/segments/new', array(
+                'headers' => array(
+                    'Authorization' => 'Basic ' . $auth,
+                    'Content-Type' => 'application/json',
+                    'User-Agent' => 'Thrive-Mautic-Plugin/' . THRIVE_MAUTIC_VERSION
+                ),
+                'body' => json_encode($segment_data),
+                'timeout' => 30,
+                'sslverify' => true
+            ));
+            
+            if (is_wp_error($response)) {
+                thrive_mautic_log('error', 'Segment creation error: ' . $response->get_error_message());
+                return false;
+            }
+            
+            $response_code = wp_remote_retrieve_response_code($response);
+            if ($response_code === 201) {
+                $data = json_decode(wp_remote_retrieve_body($response), true);
+                if (isset($data['segment']['id'])) {
+                    thrive_mautic_log('info', 'Segment created successfully', 'Segment: ' . $segment_name . ', ID: ' . $data['segment']['id']);
+                    return $data['segment']['id'];
+                }
+            }
+            
+            return false;
+            
+        } catch (Exception $e) {
+            thrive_mautic_log('error', 'Ensure segment exists error: ' . $e->getMessage());
+            return false;
+        }
+    }
+    
     function thrive_mautic_add_to_segment($contact_id, $segment_id) {
         try {
+            // If segment_id is a string (segment name), ensure it exists and get the ID
+            if (!is_numeric($segment_id)) {
+                $segment_id = thrive_mautic_ensure_segment_exists($segment_id);
+                if (!$segment_id) {
+                    thrive_mautic_log('error', 'Failed to create or find segment: ' . $segment_id);
+                    return false;
+                }
+            }
+            
             // Validate inputs
             $contact_id = intval($contact_id);
             $segment_id = intval($segment_id);
