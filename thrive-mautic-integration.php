@@ -3,7 +3,7 @@
  * Plugin Name: Thrive-Mautic Integration
  * Plugin URI: https://yourwebsite.com/thrive-mautic-integration
  * Description: Thrive Themes Integration With Mautic
- * Version: 5.7.0
+ * Version: 5.7.1
  * Author: Khodor Ghalayini
  * Author URI: https://yourwebsite.com
  * License: GPL v2 or later
@@ -18,7 +18,7 @@ if (!defined('ABSPATH')) {
 // WRAP EVERYTHING IN TRY-CATCH TO PREVENT CRASHES
 try {
     // Define plugin constants
-    define('THRIVE_MAUTIC_VERSION', '5.7.0');
+    define('THRIVE_MAUTIC_VERSION', '5.7.1');
     define('THRIVE_MAUTIC_PLUGIN_FILE', __FILE__);
     define('THRIVE_MAUTIC_PLUGIN_DIR', plugin_dir_path(__FILE__));
 
@@ -1362,65 +1362,53 @@ try {
         }
     });
 
-    // WordPress native updater integration
-    add_filter('pre_set_site_transient_update_plugins', 'thrive_mautic_check_for_updates_transient');
-    
-    function thrive_mautic_check_for_updates_transient($transient) {
-        try {
+    // Custom updater class
+    class ThriveMauticUpdater {
+        private $plugin_slug;
+        private $version;
+        private $cache_key;
+        private $cache_allowed;
+        
+        public function __construct() {
+            $this->plugin_slug = plugin_basename(__FILE__);
+            $this->version = THRIVE_MAUTIC_VERSION;
+            $this->cache_key = 'thrive_mautic_updater';
+            $this->cache_allowed = false;
+            
+            add_filter('pre_set_site_transient_update_plugins', array($this, 'check_update'));
+            add_filter('plugins_api', array($this, 'plugin_info'), 20, 3);
+            add_action('upgrader_process_complete', array($this, 'purge_cache'), 10, 2);
+        }
+        
+        public function check_update($transient) {
             if (empty($transient->checked)) {
                 return $transient;
             }
             
-            $current_version = THRIVE_MAUTIC_VERSION;
-            $github_url = 'https://api.github.com/repos/khodor04/thrive-mautic-integration/releases/latest';
+            $remote = $this->get_remote_info();
             
-            $response = wp_remote_get($github_url, array(
-                'timeout' => 30,
-                'headers' => array(
-                    'User-Agent' => 'Thrive-Mautic-Plugin'
-                )
-            ));
-            
-            if (is_wp_error($response)) {
-                return $transient;
+            if ($remote && version_compare($this->version, $remote->version, '<')) {
+                $res = new stdClass();
+                $res->slug = 'thrive-mautic-integration';
+                $res->plugin = $this->plugin_slug;
+                $res->new_version = $remote->version;
+                $res->tested = $remote->tested;
+                $res->package = $remote->download_url;
+                $res->url = $remote->url;
+                $res->icons = $remote->icons;
+                $res->banners = $remote->banners;
+                $res->banners_rtl = $remote->banners_rtl;
+                $res->requires = $remote->requires;
+                $res->requires_php = $remote->requires_php;
+                $res->compatibility = new stdClass();
+                
+                $transient->response[$res->plugin] = $res;
             }
             
-            $data = json_decode(wp_remote_retrieve_body($response), true);
-            if (!$data || !isset($data['tag_name'])) {
-                return $transient;
-            }
-            
-            $latest_version = ltrim($data['tag_name'], 'v');
-            
-            if (version_compare($current_version, $latest_version, '<')) {
-                $plugin_slug = plugin_basename(__FILE__);
-                $transient->response[$plugin_slug] = (object) array(
-                    'slug' => 'thrive-mautic-integration',
-                    'plugin' => $plugin_slug,
-                    'new_version' => $latest_version,
-                    'url' => 'https://github.com/khodor04/thrive-mautic-integration',
-                    'package' => $data['zipball_url'],
-                    'icons' => array(),
-                    'banners' => array(),
-                    'banners_rtl' => array(),
-                    'tested' => get_bloginfo('version'),
-                    'requires_php' => '7.4',
-                    'compatibility' => new stdClass()
-                );
-            }
-            
-            return $transient;
-            
-        } catch (Exception $e) {
             return $transient;
         }
-    }
-
-    // Add plugin info for updates
-    add_filter('plugins_api', 'thrive_mautic_plugin_info', 20, 3);
-    
-    function thrive_mautic_plugin_info($res, $action, $args) {
-        try {
+        
+        public function plugin_info($res, $action, $args) {
             if ($action !== 'plugin_information') {
                 return $res;
             }
@@ -1429,47 +1417,103 @@ try {
                 return $res;
             }
             
-            $github_url = 'https://api.github.com/repos/khodor04/thrive-mautic-integration/releases/latest';
+            $remote = $this->get_remote_info();
             
-            $response = wp_remote_get($github_url, array(
-                'timeout' => 30,
-                'headers' => array(
-                    'User-Agent' => 'Thrive-Mautic-Plugin'
-                )
-            ));
-            
-            if (is_wp_error($response)) {
-                return $res;
-            }
-            
-            $data = json_decode(wp_remote_retrieve_body($response), true);
-            if (!$data || !isset($data['tag_name'])) {
+            if (!$remote) {
                 return $res;
             }
             
             $res = new stdClass();
-            $res->name = 'Thrive-Mautic Integration';
-            $res->slug = 'thrive-mautic-integration';
-            $res->version = ltrim($data['tag_name'], 'v');
-            $res->author = 'Khodor Ghalayini';
-            $res->author_profile = 'https://github.com/khodor04';
-            $res->homepage = 'https://github.com/khodor04/thrive-mautic-integration';
-            $res->requires = '5.0';
-            $res->tested = get_bloginfo('version');
-            $res->requires_php = '7.4';
-            $res->last_updated = $data['published_at'];
-            $res->sections = array(
-                'description' => 'Thrive Themes Integration With Mautic - Complete form capture and contact management solution.',
-                'changelog' => 'See GitHub releases for changelog: https://github.com/khodor04/thrive-mautic-integration/releases'
-            );
-            $res->download_link = $data['zipball_url'];
+            $res->name = $remote->name;
+            $res->slug = $remote->slug;
+            $res->version = $remote->version;
+            $res->tested = $remote->tested;
+            $res->requires = $remote->requires;
+            $res->requires_php = $remote->requires_php;
+            $res->author = $remote->author;
+            $res->author_profile = $remote->author_profile;
+            $res->homepage = $remote->url;
+            $res->download_link = $remote->download_url;
+            $res->trunk = $remote->download_url;
+            $res->last_updated = $remote->last_updated;
+            $res->sections = $remote->sections;
+            $res->banners = $remote->banners;
+            $res->icons = $remote->icons;
             
-            return $res;
-            
-        } catch (Exception $e) {
             return $res;
         }
+        
+        private function get_remote_info() {
+            $remote = get_transient($this->cache_key);
+            
+            if (false === $remote || !$this->cache_allowed) {
+                $remote = $this->get_remote_data();
+                
+                if ($remote) {
+                    set_transient($this->cache_key, $remote, 12 * HOUR_IN_SECONDS);
+                }
+            }
+            
+            return $remote;
+        }
+        
+        private function get_remote_data() {
+            try {
+                $github_url = 'https://api.github.com/repos/khodor04/thrive-mautic-integration/releases/latest';
+                
+                $response = wp_remote_get($github_url, array(
+                    'timeout' => 30,
+                    'headers' => array(
+                        'User-Agent' => 'Thrive-Mautic-Plugin'
+                    )
+                ));
+                
+                if (is_wp_error($response)) {
+                    return false;
+                }
+                
+                $data = json_decode(wp_remote_retrieve_body($response), true);
+                if (!$data || !isset($data['tag_name'])) {
+                    return false;
+                }
+                
+                $remote = new stdClass();
+                $remote->name = 'Thrive-Mautic Integration';
+                $remote->slug = 'thrive-mautic-integration';
+                $remote->version = ltrim($data['tag_name'], 'v');
+                $remote->tested = get_bloginfo('version');
+                $remote->requires = '5.0';
+                $remote->requires_php = '7.4';
+                $remote->author = 'Khodor Ghalayini';
+                $remote->author_profile = 'https://github.com/khodor04';
+                $remote->url = 'https://github.com/khodor04/thrive-mautic-integration';
+                $remote->download_url = $data['zipball_url'];
+                $remote->last_updated = $data['published_at'];
+                $remote->sections = array(
+                    'description' => 'Thrive Themes Integration With Mautic - Complete form capture and contact management solution.',
+                    'changelog' => 'See GitHub releases for changelog: https://github.com/khodor04/thrive-mautic-integration/releases'
+                );
+                $remote->banners = array();
+                $remote->icons = array();
+                $remote->banners_rtl = array();
+                
+                return $remote;
+                
+            } catch (Exception $e) {
+                return false;
+            }
+        }
+        
+        public function purge_cache($upgrader, $options) {
+            if ($this->cache_allowed && 'update' === $options['action'] && 'plugin' === $options['type']) {
+                delete_transient($this->cache_key);
+            }
+        }
     }
+    
+    // Initialize the updater
+    new ThriveMauticUpdater();
+
 
 
     // Auto-update filter
