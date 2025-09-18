@@ -3,7 +3,7 @@
  * Plugin Name: Thrive-Mautic Integration
  * Plugin URI: https://yourwebsite.com/thrive-mautic-integration
  * Description: Thrive Themes Integration With Mautic
- * Version: 5.7.1
+ * Version: 5.7.2
  * Author: Khodor Ghalayini
  * Author URI: https://yourwebsite.com
  * License: GPL v2 or later
@@ -18,7 +18,7 @@ if (!defined('ABSPATH')) {
 // WRAP EVERYTHING IN TRY-CATCH TO PREVENT CRASHES
 try {
     // Define plugin constants
-    define('THRIVE_MAUTIC_VERSION', '5.7.1');
+    define('THRIVE_MAUTIC_VERSION', '5.7.2');
     define('THRIVE_MAUTIC_PLUGIN_FILE', __FILE__);
     define('THRIVE_MAUTIC_PLUGIN_DIR', plugin_dir_path(__FILE__));
 
