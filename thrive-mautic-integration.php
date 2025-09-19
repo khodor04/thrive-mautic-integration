@@ -3,7 +3,7 @@
  * Plugin Name: Thrive-Mautic Integration
  * Plugin URI: https://yourwebsite.com/thrive-mautic-integration
  * Description: Thrive Themes Integration With Mautic
- * Version: 5.8.4
+ * Version: 5.8.5
  * Author: Khodor Ghalayini
  * Author URI: https://yourwebsite.com
  * License: GPL v2 or later
@@ -18,7 +18,7 @@ if (!defined('ABSPATH')) {
 // WRAP EVERYTHING IN TRY-CATCH TO PREVENT CRASHES
 try {
     // Define plugin constants
-    define('THRIVE_MAUTIC_VERSION', '5.8.4');
+    define('THRIVE_MAUTIC_VERSION', '5.8.5');
     define('THRIVE_MAUTIC_PLUGIN_FILE', __FILE__);
     define('THRIVE_MAUTIC_PLUGIN_DIR', plugin_dir_path(__FILE__));
 
@@ -834,6 +834,7 @@ try {
                         echo '<h4>1. Hidden Segment Field (REQUIRED)</h4>';
                         echo '<code style="background: #e9ecef; padding: 5px; border-radius: 3px; display: block; margin: 5px 0;">&lt;input type="hidden" name="thrive_mautic_segment" value="[SEGMENT_NAME]"&gt;</code>';
                         echo '<p style="font-size: 14px; color: #666; margin: 10px 0;">This tells the plugin which segment to assign the lead to.</p>';
+                        echo '<p style="font-size: 12px; color: #999; margin: 5px 0;"><strong>Alternative field names:</strong> <code>segment</code> or <code>mautic_segment</code></p>';
                         echo '</div>';
                         
                         echo '<div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 10px 0;">';
@@ -846,12 +847,64 @@ try {
                         echo '<h4>3. Hidden Tags Field (OPTIONAL)</h4>';
                         echo '<code style="background: #e9ecef; padding: 5px; border-radius: 3px; display: block; margin: 5px 0;">&lt;input type="hidden" name="thrive_mautic_tags" value="tag1,tag2,tag3"&gt;</code>';
                         echo '<p style="font-size: 14px; color: #666; margin: 10px 0;">Comma-separated tags for precise lead categorization. Overrides automatic tagging.</p>';
+                        echo '<p style="font-size: 12px; color: #999; margin: 5px 0;"><strong>Alternative field names:</strong> <code>tags</code> or <code>mautic_tags</code></p>';
                         echo '</div>';
                         
                         echo '<div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 10px 0;">';
                         echo '<h4>4. Name Field (RECOMMENDED)</h4>';
                         echo '<code style="background: #e9ecef; padding: 5px; border-radius: 3px; display: block; margin: 5px 0;">&lt;input type="text" name="name"&gt;</code>';
                         echo '<p style="font-size: 14px; color: #666; margin: 10px 0;">Personalizes the experience.</p>';
+                        echo '</div>';
+                        echo '</div>';
+                        
+                        // Troubleshooting section
+                        echo '<div style="background: #fff3cd; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin: 20px 0; border-left: 4px solid #ffc107;">';
+                        echo '<h2>⚠️ Troubleshooting: Custom Fields Unavailable</h2>';
+                        echo '<p><strong>If you see "Custom fields unavailable" in Thrive Themes:</strong></p>';
+                        echo '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 15px 0;">';
+                        
+                        echo '<div>';
+                        echo '<h4>🔧 Solution 1: Connect Dummy Autoresponder</h4>';
+                        echo '<ol style="margin: 10px 0; padding-left: 20px; font-size: 14px;">';
+                        echo '<li>Go to <strong>Thrive Dashboard → Integrations</strong></li>';
+                        echo '<li>Connect any supported autoresponder (Mailchimp, AWeber, etc.)</li>';
+                        echo '<li>This unlocks custom fields</li>';
+                        echo '<li>You can still use Mautic as your primary system</li>';
+                        echo '</ol>';
+                        echo '</div>';
+                        
+                        echo '<div>';
+                        echo '<h4>🔧 Solution 2: Use Alternative Field Names</h4>';
+                        echo '<p style="font-size: 14px; margin: 10px 0;">Instead of hidden fields, use regular text fields with these names:</p>';
+                        echo '<ul style="margin: 10px 0; padding-left: 20px; font-size: 14px;">';
+                        echo '<li><strong>Segment:</strong> <code>segment</code> or <code>mautic_segment</code></li>';
+                        echo '<li><strong>Tags:</strong> <code>tags</code> or <code>mautic_tags</code></li>';
+                        echo '</ul>';
+                        echo '<p style="font-size: 12px; color: #666;">Then hide them with CSS: <code>.field-name { display: none !important; }</code></p>';
+                        echo '</div>';
+                        
+                        echo '</div>';
+                        echo '<div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 15px 0;">';
+                        echo '<h4>🔧 Solution 3: JavaScript Injection</h4>';
+                        echo '<p style="font-size: 14px; margin: 10px 0;">Add this JavaScript to your page to inject hidden fields:</p>';
+                        echo '<pre style="background: #e9ecef; padding: 10px; border-radius: 3px; overflow-x: auto; font-size: 12px;"><code>document.addEventListener("DOMContentLoaded", function() {
+    const forms = document.querySelectorAll("form[data-form-type]");
+    forms.forEach(function(form) {
+        // Add segment field
+        const segmentField = document.createElement("input");
+        segmentField.type = "hidden";
+        segmentField.name = "thrive_mautic_segment";
+        segmentField.value = "your-segment-name"; // Change per form
+        form.appendChild(segmentField);
+        
+        // Add tags field
+        const tagsField = document.createElement("input");
+        tagsField.type = "hidden";
+        tagsField.name = "thrive_mautic_tags";
+        tagsField.value = "your-tags,comma-separated"; // Change per form
+        form.appendChild(tagsField);
+    });
+});</code></pre>';
                         echo '</div>';
                         echo '</div>';
                         
@@ -2774,9 +2827,9 @@ try {
                         $phone = $field_value;
                     } elseif (strpos($field_name, 'company') !== false) {
                         $company = $field_value;
-                    } elseif ($field_name === 'thrive_mautic_segment') {
+                    } elseif ($field_name === 'thrive_mautic_segment' || $field_name === 'segment' || $field_name === 'mautic_segment') {
                         $custom_segment = $field_value;
-                    } elseif ($field_name === 'thrive_mautic_tags') {
+                    } elseif ($field_name === 'thrive_mautic_tags' || $field_name === 'tags' || $field_name === 'mautic_tags') {
                         $custom_tags = $field_value;
                     } elseif (strpos($field_name, 'utm_') === 0) {
                         $utm_data[$field_name] = $field_value;
@@ -2813,8 +2866,25 @@ try {
             }
             
             // Check for custom segment, custom tags, and UTM data
-            $custom_segment = isset($lightbox_data['thrive_mautic_segment']) ? sanitize_text_field($lightbox_data['thrive_mautic_segment']) : '';
-            $custom_tags = isset($lightbox_data['thrive_mautic_tags']) ? sanitize_text_field($lightbox_data['thrive_mautic_tags']) : '';
+            $custom_segment = '';
+            $custom_tags = '';
+            
+            // Try multiple field name variations
+            if (isset($lightbox_data['thrive_mautic_segment'])) {
+                $custom_segment = sanitize_text_field($lightbox_data['thrive_mautic_segment']);
+            } elseif (isset($lightbox_data['segment'])) {
+                $custom_segment = sanitize_text_field($lightbox_data['segment']);
+            } elseif (isset($lightbox_data['mautic_segment'])) {
+                $custom_segment = sanitize_text_field($lightbox_data['mautic_segment']);
+            }
+            
+            if (isset($lightbox_data['thrive_mautic_tags'])) {
+                $custom_tags = sanitize_text_field($lightbox_data['thrive_mautic_tags']);
+            } elseif (isset($lightbox_data['tags'])) {
+                $custom_tags = sanitize_text_field($lightbox_data['tags']);
+            } elseif (isset($lightbox_data['mautic_tags'])) {
+                $custom_tags = sanitize_text_field($lightbox_data['mautic_tags']);
+            }
             $segment_id = !empty($custom_segment) ? $custom_segment : 'thrive_lightbox';
             
             // Extract UTM data
@@ -2849,8 +2919,25 @@ try {
             }
             
             // Check for custom segment, custom tags, and UTM data
-            $custom_segment = isset($lead_data['thrive_mautic_segment']) ? sanitize_text_field($lead_data['thrive_mautic_segment']) : '';
-            $custom_tags = isset($lead_data['thrive_mautic_tags']) ? sanitize_text_field($lead_data['thrive_mautic_tags']) : '';
+            $custom_segment = '';
+            $custom_tags = '';
+            
+            // Try multiple field name variations
+            if (isset($lead_data['thrive_mautic_segment'])) {
+                $custom_segment = sanitize_text_field($lead_data['thrive_mautic_segment']);
+            } elseif (isset($lead_data['segment'])) {
+                $custom_segment = sanitize_text_field($lead_data['segment']);
+            } elseif (isset($lead_data['mautic_segment'])) {
+                $custom_segment = sanitize_text_field($lead_data['mautic_segment']);
+            }
+            
+            if (isset($lead_data['thrive_mautic_tags'])) {
+                $custom_tags = sanitize_text_field($lead_data['thrive_mautic_tags']);
+            } elseif (isset($lead_data['tags'])) {
+                $custom_tags = sanitize_text_field($lead_data['tags']);
+            } elseif (isset($lead_data['mautic_tags'])) {
+                $custom_tags = sanitize_text_field($lead_data['mautic_tags']);
+            }
             $segment_id = !empty($custom_segment) ? $custom_segment : 'thrive_leads';
             
             // Extract UTM data
@@ -2885,8 +2972,25 @@ try {
             }
             
             // Check for custom segment, custom tags, and UTM data
-            $custom_segment = isset($user_data['thrive_mautic_segment']) ? sanitize_text_field($user_data['thrive_mautic_segment']) : '';
-            $custom_tags = isset($user_data['thrive_mautic_tags']) ? sanitize_text_field($user_data['thrive_mautic_tags']) : '';
+            $custom_segment = '';
+            $custom_tags = '';
+            
+            // Try multiple field name variations
+            if (isset($user_data['thrive_mautic_segment'])) {
+                $custom_segment = sanitize_text_field($user_data['thrive_mautic_segment']);
+            } elseif (isset($user_data['segment'])) {
+                $custom_segment = sanitize_text_field($user_data['segment']);
+            } elseif (isset($user_data['mautic_segment'])) {
+                $custom_segment = sanitize_text_field($user_data['mautic_segment']);
+            }
+            
+            if (isset($user_data['thrive_mautic_tags'])) {
+                $custom_tags = sanitize_text_field($user_data['thrive_mautic_tags']);
+            } elseif (isset($user_data['tags'])) {
+                $custom_tags = sanitize_text_field($user_data['tags']);
+            } elseif (isset($user_data['mautic_tags'])) {
+                $custom_tags = sanitize_text_field($user_data['mautic_tags']);
+            }
             $segment_id = !empty($custom_segment) ? $custom_segment : 'thrive_quiz';
             
             // Extract UTM data
