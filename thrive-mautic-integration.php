@@ -3,7 +3,7 @@
  * Plugin Name: Thrive-Mautic Integration
  * Plugin URI: https://yourwebsite.com/thrive-mautic-integration
  * Description: Thrive Themes Integration With Mautic
- * Version: 5.8.5
+ * Version: 5.8.6
  * Author: Khodor Ghalayini
  * Author URI: https://yourwebsite.com
  * License: GPL v2 or later
@@ -18,7 +18,7 @@ if (!defined('ABSPATH')) {
 // WRAP EVERYTHING IN TRY-CATCH TO PREVENT CRASHES
 try {
     // Define plugin constants
-    define('THRIVE_MAUTIC_VERSION', '5.8.5');
+    define('THRIVE_MAUTIC_VERSION', '5.8.6');
     define('THRIVE_MAUTIC_PLUGIN_FILE', __FILE__);
     define('THRIVE_MAUTIC_PLUGIN_DIR', plugin_dir_path(__FILE__));
 
@@ -2138,18 +2138,18 @@ try {
                         echo '</div>';
                         echo '</div>';
                         
-                        // Forms Table
+                        // Forms Table with Management
                         echo '<div style="background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin: 20px 0;">';
-                        echo '<h2>📋 Detailed Form Analysis</h2>';
+                        echo '<h2>📋 Form Management & Analysis</h2>';
+                        echo '<p>Manage segments and tags for each form directly from this interface. No need to edit forms in Thrive Themes!</p>';
                         echo '<table class="wp-list-table widefat fixed striped">';
                         echo '<thead>';
                         echo '<tr>';
                         echo '<th>Form ID</th>';
                         echo '<th>Type</th>';
                         echo '<th>Location</th>';
-                        echo '<th>Fields</th>';
-                        echo '<th>Segment Field</th>';
-                        echo '<th>Segment Value</th>';
+                        echo '<th>Custom Segment</th>';
+                        echo '<th>Custom Tags</th>';
                         echo '<th>Status</th>';
                         echo '<th>Actions</th>';
                         echo '</tr>';
@@ -2157,32 +2157,35 @@ try {
                         echo '<tbody>';
                         
                         foreach ($forms as $form) {
-                            $segment_status = !empty($form['segment_field']) ? 
-                                '<span style="color: #28a745; font-weight: bold;">✅ Yes</span>' : 
-                                '<span style="color: #ffc107; font-weight: bold;">❌ No</span>';
+                            // Get form configuration
+                            $config = thrive_mautic_get_form_config($form['id']);
+                            $custom_segment = $config ? $config->custom_segment : '';
+                            $custom_tags = $config ? $config->custom_tags : '';
+                            $is_active = $config ? $config->is_active : 1;
                             
-                            $segment_value = !empty($form['segment_value']) ? 
-                                '<code>' . esc_html($form['segment_value']) . '</code>' : 
-                                '<em>Will use: ' . esc_html($form['type']) . '</em>';
+                            $segment_display = !empty($custom_segment) ? 
+                                '<code style="background: #e7f3ff; padding: 2px 6px; border-radius: 3px;">' . esc_html($custom_segment) . '</code>' : 
+                                '<em style="color: #666;">Default: ' . esc_html($form['type']) . '</em>';
                             
-                            $fields_count = count($form['fields']);
-                            $fields_preview = implode(', ', array_slice($form['fields'], 0, 3));
-                            if (count($form['fields']) > 3) {
-                                $fields_preview .= '... (+' . (count($form['fields']) - 3) . ' more)';
-                            }
+                            $tags_display = !empty($custom_tags) ? 
+                                '<code style="background: #f0f8ff; padding: 2px 6px; border-radius: 3px;">' . esc_html($custom_tags) . '</code>' : 
+                                '<em style="color: #666;">Auto-generated</em>';
+                            
+                            $status_display = $is_active ? 
+                                '<span style="color: #28a745; font-weight: bold;">✅ Active</span>' : 
+                                '<span style="color: #dc3545; font-weight: bold;">❌ Inactive</span>';
                             
                             echo '<tr>';
                             echo '<td><code>' . esc_html($form['id']) . '</code></td>';
                             echo '<td><span class="dashicons dashicons-' . esc_attr($form['icon']) . '"></span> ' . esc_html(ucfirst(str_replace('_', ' ', $form['type']))) . '</td>';
                             echo '<td>' . esc_html($form['location']) . '</td>';
-                            echo '<td title="' . esc_attr(implode(', ', $form['fields'])) . '">' . esc_html($fields_preview) . ' <small>(' . $fields_count . ' fields)</small></td>';
-                            echo '<td>' . $segment_status . '</td>';
-                            echo '<td>' . $segment_value . '</td>';
-                            echo '<td><span style="color: #28a745;">✅ Active</span></td>';
+                            echo '<td>' . $segment_display . '</td>';
+                            echo '<td>' . $tags_display . '</td>';
+                            echo '<td>' . $status_display . '</td>';
                             echo '<td>';
-                            echo '<a href="' . esc_url($form['edit_url']) . '" class="button button-small" target="_blank">Edit Form</a>';
-                            if (!empty($form['segment_field'])) {
-                                echo ' <span title="This form has custom segmentation configured">🎯</span>';
+                            echo '<button type="button" class="button button-small edit-form-config" data-form-id="' . esc_attr($form['id']) . '" data-form-type="' . esc_attr($form['type']) . '" data-custom-segment="' . esc_attr($custom_segment) . '" data-custom-tags="' . esc_attr($custom_tags) . '" data-is-active="' . esc_attr($is_active) . '">⚙️ Configure</button>';
+                            if ($config) {
+                                echo ' <button type="button" class="button button-small button-link-delete delete-form-config" data-form-id="' . esc_attr($form['id']) . '">🗑️ Delete</button>';
                             }
                             echo '</td>';
                             echo '</tr>';
@@ -2191,6 +2194,114 @@ try {
                         echo '</tbody>';
                         echo '</table>';
                         echo '</div>';
+                        
+                        // Form Configuration Modal
+                        echo '<div id="form-config-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999;">';
+                        echo '<div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); max-width: 500px; width: 90%;">';
+                        echo '<h3>⚙️ Configure Form Settings</h3>';
+                        echo '<form id="form-config-form">';
+                        echo '<input type="hidden" id="config-form-id" name="form_id">';
+                        echo '<input type="hidden" id="config-form-type" name="form_type">';
+                        echo wp_nonce_field('thrive_mautic_form_config', 'config_nonce', true, false);
+                        
+                        echo '<table class="form-table">';
+                        echo '<tr>';
+                        echo '<th scope="row"><label for="config-custom-segment">Custom Segment</label></th>';
+                        echo '<td><input type="text" id="config-custom-segment" name="custom_segment" class="regular-text" placeholder="e.g., ai-guide, llm-guide">';
+                        echo '<p class="description">Leave empty to use default form type as segment</p></td>';
+                        echo '</tr>';
+                        echo '<tr>';
+                        echo '<th scope="row"><label for="config-custom-tags">Custom Tags</label></th>';
+                        echo '<td><input type="text" id="config-custom-tags" name="custom_tags" class="regular-text" placeholder="e.g., ai-tools,beginner,content-downloader">';
+                        echo '<p class="description">Comma-separated tags. Leave empty for auto-generated tags</p></td>';
+                        echo '</tr>';
+                        echo '<tr>';
+                        echo '<th scope="row"><label for="config-is-active">Status</label></th>';
+                        echo '<td><label><input type="checkbox" id="config-is-active" name="is_active" value="1" checked> Active (form will be processed)</label></td>';
+                        echo '</tr>';
+                        echo '</table>';
+                        
+                        echo '<div style="text-align: right; margin-top: 20px;">';
+                        echo '<button type="button" id="cancel-config" class="button">Cancel</button>';
+                        echo ' <button type="submit" class="button button-primary">Save Configuration</button>';
+                        echo '</div>';
+                        echo '</form>';
+                        echo '</div>';
+                        echo '</div>';
+                        
+                        // JavaScript for form configuration
+                        echo '<script>
+                        jQuery(document).ready(function($) {
+                            // Open modal
+                            $(".edit-form-config").click(function() {
+                                var formId = $(this).data("form-id");
+                                var formType = $(this).data("form-type");
+                                var customSegment = $(this).data("custom-segment");
+                                var customTags = $(this).data("custom-tags");
+                                var isActive = $(this).data("is-active");
+                                
+                                $("#config-form-id").val(formId);
+                                $("#config-form-type").val(formType);
+                                $("#config-custom-segment").val(customSegment);
+                                $("#config-custom-tags").val(customTags);
+                                $("#config-is-active").prop("checked", isActive == 1);
+                                
+                                $("#form-config-modal").show();
+                            });
+                            
+                            // Close modal
+                            $("#cancel-config, #form-config-modal").click(function(e) {
+                                if (e.target === this) {
+                                    $("#form-config-modal").hide();
+                                }
+                            });
+                            
+                            // Save configuration
+                            $("#form-config-form").submit(function(e) {
+                                e.preventDefault();
+                                
+                                var formData = {
+                                    action: "thrive_mautic_save_form_config",
+                                    form_id: $("#config-form-id").val(),
+                                    form_type: $("#config-form-type").val(),
+                                    custom_segment: $("#config-custom-segment").val(),
+                                    custom_tags: $("#config-custom-tags").val(),
+                                    is_active: $("#config-is-active").is(":checked") ? 1 : 0,
+                                    nonce: $("#config_nonce").val()
+                                };
+                                
+                                $.post(ajaxurl, formData, function(response) {
+                                    if (response.success) {
+                                        alert("Configuration saved successfully!");
+                                        location.reload();
+                                    } else {
+                                        alert("Error: " + response.data);
+                                    }
+                                });
+                            });
+                            
+                            // Delete configuration
+                            $(".delete-form-config").click(function() {
+                                if (confirm("Are you sure you want to delete this form configuration?")) {
+                                    var formId = $(this).data("form-id");
+                                    var formData = {
+                                        action: "thrive_mautic_delete_form_config",
+                                        form_id: formId,
+                                        nonce: $("#config_nonce").val()
+                                    };
+                                    
+                                    $.post(ajaxurl, formData, function(response) {
+                                        if (response.success) {
+                                            alert("Configuration deleted successfully!");
+                                            location.reload();
+                                        } else {
+                                            alert("Error: " + response.data);
+                                        }
+                                    });
+                                }
+                            });
+                        });
+                        </script>';
                         
                         // Instructions
                         echo '<div style="background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin: 20px 0;">';
@@ -3049,9 +3160,25 @@ try {
             global $wpdb;
             $table_name = $wpdb->prefix . 'thrive_mautic_submissions';
             
-            // Extract UTM data and custom tags
-            $utm_data = isset($data['utm_data']) ? $data['utm_data'] : array();
+            // Get form configuration
+            $form_config = thrive_mautic_get_form_config($data['form_id']);
+            
+            // Use stored configuration if available, otherwise use form data
+            $segment_id = $data['segment_id'];
             $custom_tags = isset($data['custom_tags']) ? sanitize_text_field($data['custom_tags']) : '';
+            
+            if ($form_config && $form_config->is_active) {
+                // Use stored configuration
+                if (!empty($form_config->custom_segment)) {
+                    $segment_id = $form_config->custom_segment;
+                }
+                if (!empty($form_config->custom_tags)) {
+                    $custom_tags = $form_config->custom_tags;
+                }
+            }
+            
+            // Extract UTM data
+            $utm_data = isset($data['utm_data']) ? $data['utm_data'] : array();
             
             $wpdb->insert(
                 $table_name,
@@ -3062,7 +3189,7 @@ try {
                     'name' => sanitize_text_field($data['name']),
                     'phone' => sanitize_text_field($data['phone']),
                     'company' => sanitize_text_field($data['company']),
-                    'segment_id' => sanitize_text_field($data['segment_id']),
+                    'segment_id' => sanitize_text_field($segment_id),
                     'custom_tags' => $custom_tags,
                     'utm_source' => isset($utm_data['utm_source']) ? sanitize_text_field($utm_data['utm_source']) : '',
                     'utm_medium' => isset($utm_data['utm_medium']) ? sanitize_text_field($utm_data['utm_medium']) : '',
@@ -3082,6 +3209,80 @@ try {
     }
 
 
+    // AJAX handler for saving form configuration
+    add_action('wp_ajax_thrive_mautic_save_form_config', function() {
+        try {
+            // Check user capabilities
+            if (!current_user_can('manage_options')) {
+                wp_send_json_error('Insufficient permissions');
+                return;
+            }
+            
+            // Verify nonce
+            if (!wp_verify_nonce($_POST['nonce'], 'thrive_mautic_form_config')) {
+                wp_send_json_error('Invalid nonce');
+                return;
+            }
+            
+            $form_id = sanitize_text_field($_POST['form_id']);
+            $form_type = sanitize_text_field($_POST['form_type']);
+            $custom_segment = sanitize_text_field($_POST['custom_segment']);
+            $custom_tags = sanitize_text_field($_POST['custom_tags']);
+            $is_active = intval($_POST['is_active']);
+            
+            if (empty($form_id) || empty($form_type)) {
+                wp_send_json_error('Form ID and type are required');
+                return;
+            }
+            
+            $result = thrive_mautic_save_form_config($form_id, $form_type, $custom_segment, $custom_tags, $is_active);
+            
+            if ($result) {
+                wp_send_json_success('Form configuration saved successfully');
+            } else {
+                wp_send_json_error('Failed to save form configuration');
+            }
+            
+        } catch (Exception $e) {
+            wp_send_json_error('Error: ' . $e->getMessage());
+        }
+    });
+    
+    // AJAX handler for deleting form configuration
+    add_action('wp_ajax_thrive_mautic_delete_form_config', function() {
+        try {
+            // Check user capabilities
+            if (!current_user_can('manage_options')) {
+                wp_send_json_error('Insufficient permissions');
+                return;
+            }
+            
+            // Verify nonce
+            if (!wp_verify_nonce($_POST['nonce'], 'thrive_mautic_form_config')) {
+                wp_send_json_error('Invalid nonce');
+                return;
+            }
+            
+            $form_id = sanitize_text_field($_POST['form_id']);
+            
+            if (empty($form_id)) {
+                wp_send_json_error('Form ID is required');
+                return;
+            }
+            
+            $result = thrive_mautic_delete_form_config($form_id);
+            
+            if ($result) {
+                wp_send_json_success('Form configuration deleted successfully');
+            } else {
+                wp_send_json_error('Failed to delete form configuration');
+            }
+            
+        } catch (Exception $e) {
+            wp_send_json_error('Error: ' . $e->getMessage());
+        }
+    });
+    
     // AJAX handler for force update check
     add_action('wp_ajax_thrive_mautic_force_update_check', function() {
         try {
@@ -3588,6 +3789,25 @@ try {
             ) $charset_collate;";
             
             dbDelta($sql_logs);
+            
+            // Form configurations table
+            $config_table = $wpdb->prefix . 'thrive_mautic_form_configs';
+            $sql_config = "CREATE TABLE $config_table (
+                id mediumint(9) NOT NULL AUTO_INCREMENT,
+                form_id varchar(100) NOT NULL,
+                form_type varchar(50) NOT NULL,
+                custom_segment varchar(100) DEFAULT '',
+                custom_tags text DEFAULT '',
+                is_active tinyint(1) DEFAULT 1,
+                created_at datetime DEFAULT CURRENT_TIMESTAMP,
+                updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                PRIMARY KEY (id),
+                UNIQUE KEY form_id (form_id),
+                KEY form_type (form_type),
+                KEY is_active (is_active)
+            ) $charset_collate;";
+            
+            dbDelta($sql_config);
             
             // Contacts sync table
             $contacts_table = $wpdb->prefix . 'thrive_mautic_contacts';
@@ -4852,6 +5072,91 @@ try {
         } catch (Exception $e) {
             thrive_mautic_log('error', 'Content analysis failed: ' . $e->getMessage());
             return array();
+        }
+    }
+    
+    // Form configuration management functions
+    function thrive_mautic_get_form_config($form_id) {
+        try {
+            global $wpdb;
+            $table_name = $wpdb->prefix . 'thrive_mautic_form_configs';
+            
+            $config = $wpdb->get_row($wpdb->prepare(
+                "SELECT * FROM $table_name WHERE form_id = %s",
+                $form_id
+            ));
+            
+            return $config;
+            
+        } catch (Exception $e) {
+            thrive_mautic_log('error', 'Get form config failed: ' . $e->getMessage());
+            return null;
+        }
+    }
+    
+    function thrive_mautic_save_form_config($form_id, $form_type, $custom_segment = '', $custom_tags = '', $is_active = 1) {
+        try {
+            global $wpdb;
+            $table_name = $wpdb->prefix . 'thrive_mautic_form_configs';
+            
+            // Check if config exists
+            $existing = $wpdb->get_var($wpdb->prepare(
+                "SELECT id FROM $table_name WHERE form_id = %s",
+                $form_id
+            ));
+            
+            if ($existing) {
+                // Update existing config
+                $result = $wpdb->update(
+                    $table_name,
+                    array(
+                        'form_type' => sanitize_text_field($form_type),
+                        'custom_segment' => sanitize_text_field($custom_segment),
+                        'custom_tags' => sanitize_text_field($custom_tags),
+                        'is_active' => intval($is_active),
+                        'updated_at' => current_time('mysql')
+                    ),
+                    array('form_id' => $form_id)
+                );
+            } else {
+                // Insert new config
+                $result = $wpdb->insert(
+                    $table_name,
+                    array(
+                        'form_id' => sanitize_text_field($form_id),
+                        'form_type' => sanitize_text_field($form_type),
+                        'custom_segment' => sanitize_text_field($custom_segment),
+                        'custom_tags' => sanitize_text_field($custom_tags),
+                        'is_active' => intval($is_active),
+                        'created_at' => current_time('mysql'),
+                        'updated_at' => current_time('mysql')
+                    )
+                );
+            }
+            
+            return $result !== false;
+            
+        } catch (Exception $e) {
+            thrive_mautic_log('error', 'Save form config failed: ' . $e->getMessage());
+            return false;
+        }
+    }
+    
+    function thrive_mautic_delete_form_config($form_id) {
+        try {
+            global $wpdb;
+            $table_name = $wpdb->prefix . 'thrive_mautic_form_configs';
+            
+            $result = $wpdb->delete(
+                $table_name,
+                array('form_id' => $form_id)
+            );
+            
+            return $result !== false;
+            
+        } catch (Exception $e) {
+            thrive_mautic_log('error', 'Delete form config failed: ' . $e->getMessage());
+            return false;
         }
     }
 
