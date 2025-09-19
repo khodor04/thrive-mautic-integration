@@ -3,7 +3,7 @@
  * Plugin Name: Thrive-Mautic Integration
  * Plugin URI: https://yourwebsite.com/thrive-mautic-integration
  * Description: Thrive Themes Integration With Mautic
- * Version: 5.7.4
+ * Version: 5.7.5
  * Author: Khodor Ghalayini
  * Author URI: https://yourwebsite.com
  * License: GPL v2 or later
@@ -18,7 +18,7 @@ if (!defined('ABSPATH')) {
 // WRAP EVERYTHING IN TRY-CATCH TO PREVENT CRASHES
 try {
     // Define plugin constants
-    define('THRIVE_MAUTIC_VERSION', '5.7.4');
+    define('THRIVE_MAUTIC_VERSION', '5.7.5');
     define('THRIVE_MAUTIC_PLUGIN_FILE', __FILE__);
     define('THRIVE_MAUTIC_PLUGIN_DIR', plugin_dir_path(__FILE__));
 
@@ -302,6 +302,160 @@ try {
                     } catch (Exception $e) {
                         echo '<div class="wrap"><h1>Thrive-Mautic Submissions</h1>';
                         echo '<div class="notice notice-error"><p>Submissions error occurred. Please check error logs.</p></div>';
+                        echo '</div>';
+                    }
+                }
+            );
+            
+            // Form Analysis Submenu
+            add_submenu_page(
+                'thrive-mautic-dashboard',
+                'Form Analysis',
+                'Form Analysis',
+                'manage_options',
+                'thrive-mautic-forms',
+                function() {
+                    try {
+                        echo '<div class="wrap">';
+                        echo '<h1>Thrive Forms Analysis</h1>';
+                        
+                        // Get all forms from database
+                        global $wpdb;
+                        $forms = thrive_mautic_analyze_all_forms();
+                        
+                        if (empty($forms)) {
+                            echo '<div class="notice notice-warning"><p>No Thrive forms found on your website. Make sure you have Thrive Themes installed and forms created.</p></div>';
+                            echo '</div>';
+                            return;
+                        }
+                        
+                        // Form Statistics Summary
+                        echo '<div style="background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin: 20px 0;">';
+                        echo '<h2>📊 Form Statistics Summary</h2>';
+                        echo '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin: 20px 0;">';
+                        
+                        $total_forms = count($forms);
+                        $forms_with_segments = count(array_filter($forms, function($form) { return !empty($form['segment_field']); }));
+                        $forms_without_segments = $total_forms - $forms_with_segments;
+                        $thrive_architect_forms = count(array_filter($forms, function($form) { return $form['type'] === 'thrive_architect'; }));
+                        $thrive_leads_forms = count(array_filter($forms, function($form) { return $form['type'] === 'thrive_leads'; }));
+                        $thrive_quiz_forms = count(array_filter($forms, function($form) { return $form['type'] === 'thrive_quiz'; }));
+                        $thrive_lightbox_forms = count(array_filter($forms, function($form) { return $form['type'] === 'thrive_lightbox'; }));
+                        
+                        echo '<div class="stats-card" style="background: #f8f9fa; padding: 15px; border-radius: 8px; border-left: 4px solid #007cba;">';
+                        echo '<h3>Total Forms</h3>';
+                        echo '<div style="font-size: 24px; font-weight: bold; color: #007cba;">' . $total_forms . '</div>';
+                        echo '</div>';
+                        
+                        echo '<div class="stats-card" style="background: #f8f9fa; padding: 15px; border-radius: 8px; border-left: 4px solid #28a745;">';
+                        echo '<h3>With Segmentation</h3>';
+                        echo '<div style="font-size: 24px; font-weight: bold; color: #28a745;">' . $forms_with_segments . '</div>';
+                        echo '</div>';
+                        
+                        echo '<div class="stats-card" style="background: #f8f9fa; padding: 15px; border-radius: 8px; border-left: 4px solid #ffc107;">';
+                        echo '<h3>Without Segmentation</h3>';
+                        echo '<div style="font-size: 24px; font-weight: bold; color: #ffc107;">' . $forms_without_segments . '</div>';
+                        echo '</div>';
+                        
+                        echo '<div class="stats-card" style="background: #f8f9fa; padding: 15px; border-radius: 8px; border-left: 4px solid #6f42c1;">';
+                        echo '<h3>Thrive Architect</h3>';
+                        echo '<div style="font-size: 24px; font-weight: bold; color: #6f42c1;">' . $thrive_architect_forms . '</div>';
+                        echo '</div>';
+                        
+                        echo '<div class="stats-card" style="background: #f8f9fa; padding: 15px; border-radius: 8px; border-left: 4px solid #e83e8c;">';
+                        echo '<h3>Thrive Leads</h3>';
+                        echo '<div style="font-size: 24px; font-weight: bold; color: #e83e8c;">' . $thrive_leads_forms . '</div>';
+                        echo '</div>';
+                        
+                        echo '<div class="stats-card" style="background: #f8f9fa; padding: 15px; border-radius: 8px; border-left: 4px solid #fd7e14;">';
+                        echo '<h3>Thrive Quiz</h3>';
+                        echo '<div style="font-size: 24px; font-weight: bold; color: #fd7e14;">' . $thrive_quiz_forms . '</div>';
+                        echo '</div>';
+                        
+                        echo '<div class="stats-card" style="background: #f8f9fa; padding: 15px; border-radius: 8px; border-left: 4px solid #20c997;">';
+                        echo '<h3>Thrive Lightbox</h3>';
+                        echo '<div style="font-size: 24px; font-weight: bold; color: #20c997;">' . $thrive_lightbox_forms . '</div>';
+                        echo '</div>';
+                        
+                        echo '</div>';
+                        echo '</div>';
+                        
+                        // Forms Table
+                        echo '<div style="background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin: 20px 0;">';
+                        echo '<h2>📋 Detailed Form Analysis</h2>';
+                        echo '<table class="wp-list-table widefat fixed striped">';
+                        echo '<thead>';
+                        echo '<tr>';
+                        echo '<th>Form ID</th>';
+                        echo '<th>Type</th>';
+                        echo '<th>Location</th>';
+                        echo '<th>Fields</th>';
+                        echo '<th>Segment Field</th>';
+                        echo '<th>Segment Value</th>';
+                        echo '<th>Status</th>';
+                        echo '<th>Actions</th>';
+                        echo '</tr>';
+                        echo '</thead>';
+                        echo '<tbody>';
+                        
+                        foreach ($forms as $form) {
+                            $segment_status = !empty($form['segment_field']) ? 
+                                '<span style="color: #28a745; font-weight: bold;">✅ Yes</span>' : 
+                                '<span style="color: #ffc107; font-weight: bold;">❌ No</span>';
+                            
+                            $segment_value = !empty($form['segment_value']) ? 
+                                '<code>' . esc_html($form['segment_value']) . '</code>' : 
+                                '<em>Will use: ' . esc_html($form['type']) . '</em>';
+                            
+                            $fields_count = count($form['fields']);
+                            $fields_preview = implode(', ', array_slice($form['fields'], 0, 3));
+                            if (count($form['fields']) > 3) {
+                                $fields_preview .= '... (+' . (count($form['fields']) - 3) . ' more)';
+                            }
+                            
+                            echo '<tr>';
+                            echo '<td><code>' . esc_html($form['id']) . '</code></td>';
+                            echo '<td><span class="dashicons dashicons-' . esc_attr($form['icon']) . '"></span> ' . esc_html(ucfirst(str_replace('_', ' ', $form['type']))) . '</td>';
+                            echo '<td>' . esc_html($form['location']) . '</td>';
+                            echo '<td title="' . esc_attr(implode(', ', $form['fields'])) . '">' . esc_html($fields_preview) . ' <small>(' . $fields_count . ' fields)</small></td>';
+                            echo '<td>' . $segment_status . '</td>';
+                            echo '<td>' . $segment_value . '</td>';
+                            echo '<td><span style="color: #28a745;">✅ Active</span></td>';
+                            echo '<td>';
+                            echo '<a href="' . esc_url($form['edit_url']) . '" class="button button-small" target="_blank">Edit Form</a>';
+                            if (!empty($form['segment_field'])) {
+                                echo ' <span title="This form has custom segmentation configured">🎯</span>';
+                            }
+                            echo '</td>';
+                            echo '</tr>';
+                        }
+                        
+                        echo '</tbody>';
+                        echo '</table>';
+                        echo '</div>';
+                        
+                        // Instructions
+                        echo '<div style="background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin: 20px 0;">';
+                        echo '<h2>📝 How to Add Custom Segmentation</h2>';
+                        echo '<ol>';
+                        echo '<li><strong>For Thrive Architect Forms:</strong> Add a Hidden Field with name <code>thrive_mautic_segment</code> and your desired segment value</li>';
+                        echo '<li><strong>For Thrive Leads:</strong> Add a Hidden Field to your lead group forms</li>';
+                        echo '<li><strong>For Thrive Quiz:</strong> Add a Hidden Field to your quiz completion forms</li>';
+                        echo '<li><strong>For Thrive Lightboxes:</strong> Add a Hidden Field to your lightbox forms</li>';
+                        echo '</ol>';
+                        echo '<p><strong>Example Hidden Field:</strong></p>';
+                        echo '<ul>';
+                        echo '<li><strong>Field Name:</strong> <code>thrive_mautic_segment</code></li>';
+                        echo '<li><strong>Field Value:</strong> <code>my-custom-segment</code></li>';
+                        echo '</ul>';
+                        echo '<p>The plugin will automatically create the segment in Mautic and add contacts to it.</p>';
+                        echo '</div>';
+                        
+                        echo '</div>';
+                        
+                    } catch (Exception $e) {
+                        echo '<div class="wrap"><h1>Thrive Forms Analysis</h1>';
+                        echo '<div class="notice notice-error"><p>Form analysis error occurred. Please check error logs.</p></div>';
                         echo '</div>';
                     }
                 }
@@ -1225,6 +1379,210 @@ try {
             );
         } catch (Exception $e) {
             // Silent fail - don't crash
+        }
+    }
+    
+    // Form analysis function
+    function thrive_mautic_analyze_all_forms() {
+        try {
+            $forms = array();
+            
+            // Analyze Thrive Architect forms
+            $architect_forms = thrive_mautic_analyze_architect_forms();
+            $forms = array_merge($forms, $architect_forms);
+            
+            // Analyze Thrive Leads forms
+            $leads_forms = thrive_mautic_analyze_leads_forms();
+            $forms = array_merge($forms, $leads_forms);
+            
+            // Analyze Thrive Quiz forms
+            $quiz_forms = thrive_mautic_analyze_quiz_forms();
+            $forms = array_merge($forms, $quiz_forms);
+            
+            // Analyze Thrive Lightbox forms
+            $lightbox_forms = thrive_mautic_analyze_lightbox_forms();
+            $forms = array_merge($forms, $lightbox_forms);
+            
+            return $forms;
+            
+        } catch (Exception $e) {
+            thrive_mautic_log('error', 'Form analysis error: ' . $e->getMessage());
+            return array();
+        }
+    }
+    
+    function thrive_mautic_analyze_architect_forms() {
+        try {
+            $forms = array();
+            
+            // Get all posts and pages with Thrive Architect content
+            $posts = get_posts(array(
+                'post_type' => array('post', 'page'),
+                'posts_per_page' => -1,
+                'meta_query' => array(
+                    array(
+                        'key' => 'tve_updated_post',
+                        'compare' => 'EXISTS'
+                    )
+                )
+            ));
+            
+            foreach ($posts as $post) {
+                $content = get_post_meta($post->ID, 'tve_updated_post', true);
+                if (empty($content)) continue;
+                
+                // Look for forms in the content
+                preg_match_all('/data-form-identifier="([^"]+)"/', $content, $form_matches);
+                
+                if (!empty($form_matches[1])) {
+                    foreach ($form_matches[1] as $form_id) {
+                        // Extract form fields
+                        $fields = array();
+                        $segment_field = '';
+                        $segment_value = '';
+                        
+                        // Look for form fields
+                        preg_match_all('/name="([^"]+)"/', $content, $field_matches);
+                        if (!empty($field_matches[1])) {
+                            $fields = array_unique($field_matches[1]);
+                            
+                            // Check for segment field
+                            if (in_array('thrive_mautic_segment', $fields)) {
+                                $segment_field = 'thrive_mautic_segment';
+                                // Try to extract default value
+                                preg_match('/name="thrive_mautic_segment"[^>]*value="([^"]*)"/', $content, $value_match);
+                                if (!empty($value_match[1])) {
+                                    $segment_value = $value_match[1];
+                                }
+                            }
+                        }
+                        
+                        $forms[] = array(
+                            'id' => $form_id,
+                            'type' => 'thrive_architect',
+                            'location' => get_the_title($post->ID) . ' (ID: ' . $post->ID . ')',
+                            'edit_url' => admin_url('post.php?post=' . $post->ID . '&action=edit'),
+                            'fields' => $fields,
+                            'segment_field' => $segment_field,
+                            'segment_value' => $segment_value,
+                            'icon' => 'forms'
+                        );
+                    }
+                }
+            }
+            
+            return $forms;
+            
+        } catch (Exception $e) {
+            return array();
+        }
+    }
+    
+    function thrive_mautic_analyze_leads_forms() {
+        try {
+            $forms = array();
+            
+            // Check if Thrive Leads is active
+            if (!class_exists('Thrive_Leads')) {
+                return $forms;
+            }
+            
+            // Get all lead groups
+            $lead_groups = get_posts(array(
+                'post_type' => 'tve_lead_group',
+                'posts_per_page' => -1,
+                'post_status' => 'publish'
+            ));
+            
+            foreach ($lead_groups as $group) {
+                $forms[] = array(
+                    'id' => 'leads-group-' . $group->ID,
+                    'type' => 'thrive_leads',
+                    'location' => $group->post_title . ' (Lead Group)',
+                    'edit_url' => admin_url('post.php?post=' . $group->ID . '&action=edit'),
+                    'fields' => array('email', 'name', 'phone', 'company'), // Default fields
+                    'segment_field' => '',
+                    'segment_value' => '',
+                    'icon' => 'groups'
+                );
+            }
+            
+            return $forms;
+            
+        } catch (Exception $e) {
+            return array();
+        }
+    }
+    
+    function thrive_mautic_analyze_quiz_forms() {
+        try {
+            $forms = array();
+            
+            // Check if Thrive Quiz Builder is active
+            if (!class_exists('TQB_Quiz_Manager')) {
+                return $forms;
+            }
+            
+            // Get all quizzes
+            $quizzes = get_posts(array(
+                'post_type' => 'tqb_quiz',
+                'posts_per_page' => -1,
+                'post_status' => 'publish'
+            ));
+            
+            foreach ($quizzes as $quiz) {
+                $forms[] = array(
+                    'id' => 'quiz-' . $quiz->ID,
+                    'type' => 'thrive_quiz',
+                    'location' => $quiz->post_title . ' (Quiz)',
+                    'edit_url' => admin_url('post.php?post=' . $quiz->ID . '&action=edit'),
+                    'fields' => array('email', 'name', 'phone', 'company'), // Default fields
+                    'segment_field' => '',
+                    'segment_value' => '',
+                    'icon' => 'chart-pie'
+                );
+            }
+            
+            return $forms;
+            
+        } catch (Exception $e) {
+            return array();
+        }
+    }
+    
+    function thrive_mautic_analyze_lightbox_forms() {
+        try {
+            $forms = array();
+            
+            // Check if Thrive Lightbox is active
+            if (!class_exists('Thrive_Lightbox')) {
+                return $forms;
+            }
+            
+            // Get all lightboxes
+            $lightboxes = get_posts(array(
+                'post_type' => 'tve_lightbox',
+                'posts_per_page' => -1,
+                'post_status' => 'publish'
+            ));
+            
+            foreach ($lightboxes as $lightbox) {
+                $forms[] = array(
+                    'id' => 'lightbox-' . $lightbox->ID,
+                    'type' => 'thrive_lightbox',
+                    'location' => $lightbox->post_title . ' (Lightbox)',
+                    'edit_url' => admin_url('post.php?post=' . $lightbox->ID . '&action=edit'),
+                    'fields' => array('email', 'name', 'phone', 'company'), // Default fields
+                    'segment_field' => '',
+                    'segment_value' => '',
+                    'icon' => 'visibility'
+                );
+            }
+            
+            return $forms;
+            
+        } catch (Exception $e) {
+            return array();
         }
     }
 
