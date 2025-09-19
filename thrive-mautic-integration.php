@@ -3,7 +3,7 @@
  * Plugin Name: Thrive-Mautic Integration
  * Plugin URI: https://yourwebsite.com/thrive-mautic-integration
  * Description: Thrive Themes Integration With Mautic
- * Version: 5.8.6
+ * Version: 5.8.7
  * Author: Khodor Ghalayini
  * Author URI: https://yourwebsite.com
  * License: GPL v2 or later
@@ -18,7 +18,7 @@ if (!defined('ABSPATH')) {
 // WRAP EVERYTHING IN TRY-CATCH TO PREVENT CRASHES
 try {
     // Define plugin constants
-    define('THRIVE_MAUTIC_VERSION', '5.8.6');
+    define('THRIVE_MAUTIC_VERSION', '5.8.7');
     define('THRIVE_MAUTIC_PLUGIN_FILE', __FILE__);
     define('THRIVE_MAUTIC_PLUGIN_DIR', plugin_dir_path(__FILE__));
 
@@ -2904,6 +2904,10 @@ try {
     // Thrive Leads form capture
     add_action('tve_leads_form_submit', 'thrive_mautic_capture_leads_form', 10, 2);
     
+    // Additional Thrive Leads hooks for different form types
+    add_action('tve_leads_ajax_submit', 'thrive_mautic_capture_leads_ajax_form', 10, 2);
+    add_action('tve_leads_ajax_submit_contact', 'thrive_mautic_capture_leads_contact_form', 10, 2);
+    
     // Thrive Quiz Builder form capture
     add_action('tqb_quiz_completed', 'thrive_mautic_capture_quiz_form', 10, 2);
     
@@ -3076,6 +3080,112 @@ try {
         }
     }
     
+    function thrive_mautic_capture_leads_ajax_form($lead_data, $form_type) {
+        try {
+            if (!isset($lead_data['email']) || empty($lead_data['email'])) {
+                return;
+            }
+            
+            // Check for custom segment, custom tags, and UTM data
+            $custom_segment = '';
+            $custom_tags = '';
+            
+            // Try multiple field name variations
+            if (isset($lead_data['thrive_mautic_segment'])) {
+                $custom_segment = sanitize_text_field($lead_data['thrive_mautic_segment']);
+            } elseif (isset($lead_data['segment'])) {
+                $custom_segment = sanitize_text_field($lead_data['segment']);
+            } elseif (isset($lead_data['mautic_segment'])) {
+                $custom_segment = sanitize_text_field($lead_data['mautic_segment']);
+            }
+            
+            if (isset($lead_data['thrive_mautic_tags'])) {
+                $custom_tags = sanitize_text_field($lead_data['thrive_mautic_tags']);
+            } elseif (isset($lead_data['tags'])) {
+                $custom_tags = sanitize_text_field($lead_data['tags']);
+            } elseif (isset($lead_data['mautic_tags'])) {
+                $custom_tags = sanitize_text_field($lead_data['mautic_tags']);
+            }
+            $segment_id = !empty($custom_segment) ? $custom_segment : 'thrive_leads_ajax';
+            
+            // Extract UTM data
+            $utm_data = array();
+            foreach ($lead_data as $key => $value) {
+                if (strpos($key, 'utm_') === 0) {
+                    $utm_data[$key] = sanitize_text_field($value);
+                }
+            }
+            
+            thrive_mautic_queue_submission(array(
+                'form_id' => isset($lead_data['form_id']) ? $lead_data['form_id'] : 'leads_ajax_' . $form_type,
+                'form_type' => 'thrive_leads_ajax',
+                'email' => sanitize_email($lead_data['email']),
+                'name' => isset($lead_data['name']) ? sanitize_text_field($lead_data['name']) : '',
+                'phone' => isset($lead_data['phone']) ? sanitize_text_field($lead_data['phone']) : '',
+                'company' => isset($lead_data['company']) ? sanitize_text_field($lead_data['company']) : '',
+                'segment_id' => $segment_id,
+                'custom_tags' => $custom_tags,
+                'utm_data' => $utm_data
+            ));
+            
+        } catch (Exception $e) {
+            thrive_mautic_log('error', 'Leads AJAX form capture error: ' . $e->getMessage());
+        }
+    }
+    
+    function thrive_mautic_capture_leads_contact_form($lead_data, $form_type) {
+        try {
+            if (!isset($lead_data['email']) || empty($lead_data['email'])) {
+                return;
+            }
+            
+            // Check for custom segment, custom tags, and UTM data
+            $custom_segment = '';
+            $custom_tags = '';
+            
+            // Try multiple field name variations
+            if (isset($lead_data['thrive_mautic_segment'])) {
+                $custom_segment = sanitize_text_field($lead_data['thrive_mautic_segment']);
+            } elseif (isset($lead_data['segment'])) {
+                $custom_segment = sanitize_text_field($lead_data['segment']);
+            } elseif (isset($lead_data['mautic_segment'])) {
+                $custom_segment = sanitize_text_field($lead_data['mautic_segment']);
+            }
+            
+            if (isset($lead_data['thrive_mautic_tags'])) {
+                $custom_tags = sanitize_text_field($lead_data['thrive_mautic_tags']);
+            } elseif (isset($lead_data['tags'])) {
+                $custom_tags = sanitize_text_field($lead_data['tags']);
+            } elseif (isset($lead_data['mautic_tags'])) {
+                $custom_tags = sanitize_text_field($lead_data['mautic_tags']);
+            }
+            $segment_id = !empty($custom_segment) ? $custom_segment : 'thrive_leads_contact';
+            
+            // Extract UTM data
+            $utm_data = array();
+            foreach ($lead_data as $key => $value) {
+                if (strpos($key, 'utm_') === 0) {
+                    $utm_data[$key] = sanitize_text_field($value);
+                }
+            }
+            
+            thrive_mautic_queue_submission(array(
+                'form_id' => isset($lead_data['form_id']) ? $lead_data['form_id'] : 'leads_contact_' . $form_type,
+                'form_type' => 'thrive_leads_contact',
+                'email' => sanitize_email($lead_data['email']),
+                'name' => isset($lead_data['name']) ? sanitize_text_field($lead_data['name']) : '',
+                'phone' => isset($lead_data['phone']) ? sanitize_text_field($lead_data['phone']) : '',
+                'company' => isset($lead_data['company']) ? sanitize_text_field($lead_data['company']) : '',
+                'segment_id' => $segment_id,
+                'custom_tags' => $custom_tags,
+                'utm_data' => $utm_data
+            ));
+            
+        } catch (Exception $e) {
+            thrive_mautic_log('error', 'Leads contact form capture error: ' . $e->getMessage());
+        }
+    }
+    
     function thrive_mautic_capture_quiz_form($quiz_id, $user_data) {
         try {
             if (!isset($user_data['email']) || empty($user_data['email'])) {
@@ -3112,8 +3222,11 @@ try {
                 }
             }
             
+            // Use quiz ID as form ID for now
+            $form_id = 'quiz_' . $quiz_id;
+            
             thrive_mautic_queue_submission(array(
-                'form_id' => 'quiz_' . $quiz_id,
+                'form_id' => $form_id,
                 'form_type' => 'thrive_quiz',
                 'email' => sanitize_email($user_data['email']),
                 'name' => isset($user_data['name']) ? sanitize_text_field($user_data['name']) : '',
@@ -3126,6 +3239,65 @@ try {
             
         } catch (Exception $e) {
             thrive_mautic_log('error', 'Quiz form capture error: ' . $e->getMessage());
+        }
+    }
+    
+    // Additional hook for Thrive Quiz opt-in gate forms
+    add_action('tqb_quiz_opt_in_gate_submit', 'thrive_mautic_capture_quiz_opt_in_form', 10, 2);
+    
+    function thrive_mautic_capture_quiz_opt_in_form($quiz_id, $form_data) {
+        try {
+            if (!isset($form_data['email']) || empty($form_data['email'])) {
+                return;
+            }
+            
+            // Check for custom segment, custom tags, and UTM data
+            $custom_segment = '';
+            $custom_tags = '';
+            
+            // Try multiple field name variations
+            if (isset($form_data['thrive_mautic_segment'])) {
+                $custom_segment = sanitize_text_field($form_data['thrive_mautic_segment']);
+            } elseif (isset($form_data['segment'])) {
+                $custom_segment = sanitize_text_field($form_data['segment']);
+            } elseif (isset($form_data['mautic_segment'])) {
+                $custom_segment = sanitize_text_field($form_data['mautic_segment']);
+            }
+            
+            if (isset($form_data['thrive_mautic_tags'])) {
+                $custom_tags = sanitize_text_field($form_data['thrive_mautic_tags']);
+            } elseif (isset($form_data['tags'])) {
+                $custom_tags = sanitize_text_field($form_data['tags']);
+            } elseif (isset($form_data['mautic_tags'])) {
+                $custom_tags = sanitize_text_field($form_data['mautic_tags']);
+            }
+            $segment_id = !empty($custom_segment) ? $custom_segment : 'thrive_quiz_opt_in';
+            
+            // Extract UTM data
+            $utm_data = array();
+            foreach ($form_data as $key => $value) {
+                if (strpos($key, 'utm_') === 0) {
+                    $utm_data[$key] = sanitize_text_field($value);
+                }
+            }
+            
+            // Use opt-in gate form ID if available, otherwise use quiz ID
+            $form_id = isset($form_data['form_id']) ? $form_data['form_id'] : 'quiz_opt_in_' . $quiz_id;
+            
+            thrive_mautic_queue_submission(array(
+                'form_id' => $form_id,
+                'form_type' => 'thrive_quiz_opt_in',
+                'email' => sanitize_email($form_data['email']),
+                'name' => isset($form_data['name']) ? sanitize_text_field($form_data['name']) : '',
+                'phone' => isset($form_data['phone']) ? sanitize_text_field($form_data['phone']) : '',
+                'company' => isset($form_data['company']) ? sanitize_text_field($form_data['company']) : '',
+                'segment_id' => $segment_id,
+                'custom_tags' => $custom_tags,
+                'utm_data' => $utm_data
+            ));
+            
+        } catch (Exception $e) {
+            thrive_mautic_log('error', 'Quiz opt-in form capture error: ' . $e->getMessage());
         }
     }
     
