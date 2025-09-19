@@ -3,7 +3,7 @@
  * Plugin Name: Thrive-Mautic Integration
  * Plugin URI: https://yourwebsite.com/thrive-mautic-integration
  * Description: Thrive Themes Integration With Mautic
- * Version: 5.7.6
+ * Version: 5.7.7
  * Author: Khodor Ghalayini
  * Author URI: https://yourwebsite.com
  * License: GPL v2 or later
@@ -18,7 +18,7 @@ if (!defined('ABSPATH')) {
 // WRAP EVERYTHING IN TRY-CATCH TO PREVENT CRASHES
 try {
     // Define plugin constants
-    define('THRIVE_MAUTIC_VERSION', '5.7.6');
+    define('THRIVE_MAUTIC_VERSION', '5.7.7');
     define('THRIVE_MAUTIC_PLUGIN_FILE', __FILE__);
     define('THRIVE_MAUTIC_PLUGIN_DIR', plugin_dir_path(__FILE__));
 
@@ -450,6 +450,213 @@ try {
                     } catch (Exception $e) {
                         echo '<div class="wrap"><h1>Contact Sync Dashboard</h1>';
                         echo '<div class="notice notice-error"><p>Contact sync error occurred. Please check error logs.</p></div>';
+                        echo '</div>';
+                    }
+                }
+            );
+            
+            // UTM Analytics Submenu
+            add_submenu_page(
+                'thrive-mautic-dashboard',
+                'UTM Analytics',
+                'UTM Analytics',
+                'manage_options',
+                'thrive-mautic-utm',
+                function() {
+                    try {
+                        echo '<div class="wrap">';
+                        echo '<h1>UTM Analytics Dashboard</h1>';
+                        
+                        // Get UTM statistics
+                        $utm_stats = thrive_mautic_get_utm_stats();
+                        
+                        // Statistics Summary
+                        echo '<div style="background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin: 20px 0;">';
+                        echo '<h2>📊 UTM Performance Overview</h2>';
+                        echo '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin: 20px 0;">';
+                        
+                        echo '<div class="stats-card" style="background: #f8f9fa; padding: 15px; border-radius: 8px; border-left: 4px solid #007cba;">';
+                        echo '<h3>Total UTM Leads</h3>';
+                        echo '<div style="font-size: 24px; font-weight: bold; color: #007cba;">' . $utm_stats['total_utm_leads'] . '</div>';
+                        echo '</div>';
+                        
+                        echo '<div class="stats-card" style="background: #f8f9fa; padding: 15px; border-radius: 8px; border-left: 4px solid #28a745;">';
+                        echo '<h3>Top Source</h3>';
+                        echo '<div style="font-size: 18px; font-weight: bold; color: #28a745;">' . esc_html($utm_stats['top_source']) . '</div>';
+                        echo '<div style="font-size: 14px; color: #666;">' . $utm_stats['top_source_count'] . ' leads</div>';
+                        echo '</div>';
+                        
+                        echo '<div class="stats-card" style="background: #f8f9fa; padding: 15px; border-radius: 8px; border-left: 4px solid #ffc107;">';
+                        echo '<h3>Top Campaign</h3>';
+                        echo '<div style="font-size: 18px; font-weight: bold; color: #ffc107;">' . esc_html($utm_stats['top_campaign']) . '</div>';
+                        echo '<div style="font-size: 14px; color: #666;">' . $utm_stats['top_campaign_count'] . ' leads</div>';
+                        echo '</div>';
+                        
+                        echo '<div class="stats-card" style="background: #f8f9fa; padding: 15px; border-radius: 8px; border-left: 4px solid #6f42c1;">';
+                        echo '<h3>Conversion Rate</h3>';
+                        echo '<div style="font-size: 24px; font-weight: bold; color: #6f42c1;">' . $utm_stats['conversion_rate'] . '%</div>';
+                        echo '</div>';
+                        
+                        echo '</div>';
+                        echo '</div>';
+                        
+                        // Top Sources Table
+                        if (!empty($utm_stats['sources'])) {
+                            echo '<div style="background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin: 20px 0;">';
+                            echo '<h2>🎯 Top Traffic Sources</h2>';
+                            echo '<table class="wp-list-table widefat fixed striped">';
+                            echo '<thead>';
+                            echo '<tr>';
+                            echo '<th>Source</th>';
+                            echo '<th>Medium</th>';
+                            echo '<th>Leads</th>';
+                            echo '<th>Percentage</th>';
+                            echo '<th>Last Lead</th>';
+                            echo '</tr>';
+                            echo '</thead>';
+                            echo '<tbody>';
+                            
+                            foreach ($utm_stats['sources'] as $source) {
+                                echo '<tr>';
+                                echo '<td><strong>' . esc_html($source['source']) . '</strong></td>';
+                                echo '<td>' . esc_html($source['medium']) . '</td>';
+                                echo '<td><span style="font-weight: bold; color: #007cba;">' . $source['count'] . '</span></td>';
+                                echo '<td>' . $source['percentage'] . '%</td>';
+                                echo '<td>' . esc_html($source['last_lead']) . '</td>';
+                                echo '</tr>';
+                            }
+                            
+                            echo '</tbody>';
+                            echo '</table>';
+                            echo '</div>';
+                        }
+                        
+                        // Campaign Performance
+                        if (!empty($utm_stats['campaigns'])) {
+                            echo '<div style="background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin: 20px 0;">';
+                            echo '<h2>🚀 Campaign Performance</h2>';
+                            echo '<table class="wp-list-table widefat fixed striped">';
+                            echo '<thead>';
+                            echo '<tr>';
+                            echo '<th>Campaign</th>';
+                            echo '<th>Source</th>';
+                            echo '<th>Medium</th>';
+                            echo '<th>Leads</th>';
+                            echo '<th>Content</th>';
+                            echo '<th>Term</th>';
+                            echo '</tr>';
+                            echo '</thead>';
+                            echo '<tbody>';
+                            
+                            foreach ($utm_stats['campaigns'] as $campaign) {
+                                echo '<tr>';
+                                echo '<td><strong>' . esc_html($campaign['campaign']) . '</strong></td>';
+                                echo '<td>' . esc_html($campaign['source']) . '</td>';
+                                echo '<td>' . esc_html($campaign['medium']) . '</td>';
+                                echo '<td><span style="font-weight: bold; color: #28a745;">' . $campaign['count'] . '</span></td>';
+                                echo '<td>' . esc_html($campaign['content']) . '</td>';
+                                echo '<td>' . esc_html($campaign['term']) . '</td>';
+                                echo '</tr>';
+                            }
+                            
+                            echo '</tbody>';
+                            echo '</table>';
+                            echo '</div>';
+                        }
+                        
+                        // UTM Builder Tool
+                        echo '<div style="background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin: 20px 0;">';
+                        echo '<h2>🛠️ UTM Builder Tool</h2>';
+                        echo '<p>Create UTM URLs for your campaigns:</p>';
+                        echo '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 20px 0;">';
+                        
+                        echo '<div>';
+                        echo '<label for="utm_base_url" style="display: block; margin-bottom: 5px; font-weight: bold;">Base URL:</label>';
+                        echo '<input type="url" id="utm_base_url" placeholder="https://yoursite.com/landing-page" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">';
+                        echo '</div>';
+                        
+                        echo '<div>';
+                        echo '<label for="utm_source" style="display: block; margin-bottom: 5px; font-weight: bold;">Source:</label>';
+                        echo '<input type="text" id="utm_source" placeholder="google, facebook, email" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">';
+                        echo '</div>';
+                        
+                        echo '<div>';
+                        echo '<label for="utm_medium" style="display: block; margin-bottom: 5px; font-weight: bold;">Medium:</label>';
+                        echo '<input type="text" id="utm_medium" placeholder="cpc, social, email" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">';
+                        echo '</div>';
+                        
+                        echo '<div>';
+                        echo '<label for="utm_campaign" style="display: block; margin-bottom: 5px; font-weight: bold;">Campaign:</label>';
+                        echo '<input type="text" id="utm_campaign" placeholder="summer-sale-2024" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">';
+                        echo '</div>';
+                        
+                        echo '<div>';
+                        echo '<label for="utm_content" style="display: block; margin-bottom: 5px; font-weight: bold;">Content:</label>';
+                        echo '<input type="text" id="utm_content" placeholder="banner-top, ad1" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">';
+                        echo '</div>';
+                        
+                        echo '<div>';
+                        echo '<label for="utm_term" style="display: block; margin-bottom: 5px; font-weight: bold;">Term:</label>';
+                        echo '<input type="text" id="utm_term" placeholder="seo tools, discount" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">';
+                        echo '</div>';
+                        
+                        echo '</div>';
+                        
+                        echo '<button type="button" onclick="generateUTM()" class="button button-primary" style="margin: 10px 0;">Generate UTM URL</button>';
+                        echo '<div id="utm_result" style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 4px; display: none;">';
+                        echo '<h3>Generated UTM URL:</h3>';
+                        echo '<input type="text" id="utm_output" readonly style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-family: monospace;">';
+                        echo '<button type="button" onclick="copyUTM()" class="button" style="margin-top: 10px;">Copy URL</button>';
+                        echo '</div>';
+                        
+                        echo '</div>';
+                        
+                        // JavaScript for UTM Builder
+                        echo '<script>
+                        function generateUTM() {
+                            const baseUrl = document.getElementById("utm_base_url").value;
+                            const source = document.getElementById("utm_source").value;
+                            const medium = document.getElementById("utm_medium").value;
+                            const campaign = document.getElementById("utm_campaign").value;
+                            const content = document.getElementById("utm_content").value;
+                            const term = document.getElementById("utm_term").value;
+                            
+                            if (!baseUrl) {
+                                alert("Please enter a base URL");
+                                return;
+                            }
+                            
+                            let utmUrl = baseUrl;
+                            const params = [];
+                            
+                            if (source) params.push("utm_source=" + encodeURIComponent(source));
+                            if (medium) params.push("utm_medium=" + encodeURIComponent(medium));
+                            if (campaign) params.push("utm_campaign=" + encodeURIComponent(campaign));
+                            if (content) params.push("utm_content=" + encodeURIComponent(content));
+                            if (term) params.push("utm_term=" + encodeURIComponent(term));
+                            
+                            if (params.length > 0) {
+                                utmUrl += (baseUrl.includes("?") ? "&" : "?") + params.join("&");
+                            }
+                            
+                            document.getElementById("utm_output").value = utmUrl;
+                            document.getElementById("utm_result").style.display = "block";
+                        }
+                        
+                        function copyUTM() {
+                            const utmOutput = document.getElementById("utm_output");
+                            utmOutput.select();
+                            utmOutput.setSelectionRange(0, 99999);
+                            document.execCommand("copy");
+                            alert("UTM URL copied to clipboard!");
+                        }
+                        </script>';
+                        
+                        echo '</div>';
+                        
+                    } catch (Exception $e) {
+                        echo '<div class="wrap"><h1>UTM Analytics Dashboard</h1>';
+                        echo '<div class="notice notice-error"><p>UTM analytics error occurred. Please check error logs.</p></div>';
                         echo '</div>';
                     }
                 }
@@ -1174,12 +1381,13 @@ try {
             $form_data = $_POST['form_data'];
             $form_id = isset($_POST['form_id']) ? sanitize_text_field($_POST['form_id']) : 'unknown';
             
-            // Extract email, name, phone, company, and custom segment
+            // Extract email, name, phone, company, custom segment, and UTM data
             $email = '';
             $name = '';
             $phone = '';
             $company = '';
             $custom_segment = '';
+            $utm_data = array();
             
             foreach ($form_data as $field) {
                 if (isset($field['name']) && isset($field['value'])) {
@@ -1196,6 +1404,8 @@ try {
                         $company = $field_value;
                     } elseif ($field_name === 'thrive_mautic_segment') {
                         $custom_segment = $field_value;
+                    } elseif (strpos($field_name, 'utm_') === 0) {
+                        $utm_data[$field_name] = $field_value;
                     }
                 }
             }
@@ -1211,7 +1421,8 @@ try {
                     'name' => $name,
                     'phone' => $phone,
                     'company' => $company,
-                    'segment_id' => $segment_id
+                    'segment_id' => $segment_id,
+                    'utm_data' => $utm_data
                 ));
             }
             
@@ -1226,9 +1437,17 @@ try {
                 return;
             }
             
-            // Check for custom segment
+            // Check for custom segment and UTM data
             $custom_segment = isset($lightbox_data['thrive_mautic_segment']) ? sanitize_text_field($lightbox_data['thrive_mautic_segment']) : '';
             $segment_id = !empty($custom_segment) ? $custom_segment : 'thrive_lightbox';
+            
+            // Extract UTM data
+            $utm_data = array();
+            foreach ($lightbox_data as $key => $value) {
+                if (strpos($key, 'utm_') === 0) {
+                    $utm_data[$key] = sanitize_text_field($value);
+                }
+            }
             
             thrive_mautic_queue_submission(array(
                 'form_id' => isset($lightbox_data['form_id']) ? $lightbox_data['form_id'] : 'lightbox_' . $form_type,
@@ -1237,7 +1456,8 @@ try {
                 'name' => isset($lightbox_data['name']) ? sanitize_text_field($lightbox_data['name']) : '',
                 'phone' => isset($lightbox_data['phone']) ? sanitize_text_field($lightbox_data['phone']) : '',
                 'company' => isset($lightbox_data['company']) ? sanitize_text_field($lightbox_data['company']) : '',
-                'segment_id' => $segment_id
+                'segment_id' => $segment_id,
+                'utm_data' => $utm_data
             ));
             
         } catch (Exception $e) {
@@ -1251,9 +1471,17 @@ try {
                 return;
             }
             
-            // Check for custom segment
+            // Check for custom segment and UTM data
             $custom_segment = isset($lead_data['thrive_mautic_segment']) ? sanitize_text_field($lead_data['thrive_mautic_segment']) : '';
             $segment_id = !empty($custom_segment) ? $custom_segment : 'thrive_leads';
+            
+            // Extract UTM data
+            $utm_data = array();
+            foreach ($lead_data as $key => $value) {
+                if (strpos($key, 'utm_') === 0) {
+                    $utm_data[$key] = sanitize_text_field($value);
+                }
+            }
             
             thrive_mautic_queue_submission(array(
                 'form_id' => isset($lead_data['form_id']) ? $lead_data['form_id'] : 'leads_' . $form_type,
@@ -1262,7 +1490,8 @@ try {
                 'name' => isset($lead_data['name']) ? sanitize_text_field($lead_data['name']) : '',
                 'phone' => isset($lead_data['phone']) ? sanitize_text_field($lead_data['phone']) : '',
                 'company' => isset($lead_data['company']) ? sanitize_text_field($lead_data['company']) : '',
-                'segment_id' => $segment_id
+                'segment_id' => $segment_id,
+                'utm_data' => $utm_data
             ));
             
         } catch (Exception $e) {
@@ -1276,9 +1505,17 @@ try {
                 return;
             }
             
-            // Check for custom segment
+            // Check for custom segment and UTM data
             $custom_segment = isset($user_data['thrive_mautic_segment']) ? sanitize_text_field($user_data['thrive_mautic_segment']) : '';
             $segment_id = !empty($custom_segment) ? $custom_segment : 'thrive_quiz';
+            
+            // Extract UTM data
+            $utm_data = array();
+            foreach ($user_data as $key => $value) {
+                if (strpos($key, 'utm_') === 0) {
+                    $utm_data[$key] = sanitize_text_field($value);
+                }
+            }
             
             thrive_mautic_queue_submission(array(
                 'form_id' => 'quiz_' . $quiz_id,
@@ -1287,7 +1524,8 @@ try {
                 'name' => isset($user_data['name']) ? sanitize_text_field($user_data['name']) : '',
                 'phone' => isset($user_data['phone']) ? sanitize_text_field($user_data['phone']) : '',
                 'company' => isset($user_data['company']) ? sanitize_text_field($user_data['company']) : '',
-                'segment_id' => $segment_id
+                'segment_id' => $segment_id,
+                'utm_data' => $utm_data
             ));
             
         } catch (Exception $e) {
@@ -1326,6 +1564,9 @@ try {
             global $wpdb;
             $table_name = $wpdb->prefix . 'thrive_mautic_submissions';
             
+            // Extract UTM data
+            $utm_data = isset($data['utm_data']) ? $data['utm_data'] : array();
+            
             $wpdb->insert(
                 $table_name,
                 array(
@@ -1336,6 +1577,11 @@ try {
                     'phone' => sanitize_text_field($data['phone']),
                     'company' => sanitize_text_field($data['company']),
                     'segment_id' => sanitize_text_field($data['segment_id']),
+                    'utm_source' => isset($utm_data['utm_source']) ? sanitize_text_field($utm_data['utm_source']) : '',
+                    'utm_medium' => isset($utm_data['utm_medium']) ? sanitize_text_field($utm_data['utm_medium']) : '',
+                    'utm_campaign' => isset($utm_data['utm_campaign']) ? sanitize_text_field($utm_data['utm_campaign']) : '',
+                    'utm_content' => isset($utm_data['utm_content']) ? sanitize_text_field($utm_data['utm_content']) : '',
+                    'utm_term' => isset($utm_data['utm_term']) ? sanitize_text_field($utm_data['utm_term']) : '',
                     'status' => 'pending',
                     'created_at' => current_time('mysql')
                 )
@@ -1475,6 +1721,11 @@ try {
                 phone varchar(50) DEFAULT '',
                 company varchar(255) DEFAULT '',
                 segment_id varchar(100) DEFAULT '',
+                utm_source varchar(255) DEFAULT '',
+                utm_medium varchar(255) DEFAULT '',
+                utm_campaign varchar(255) DEFAULT '',
+                utm_content varchar(255) DEFAULT '',
+                utm_term varchar(255) DEFAULT '',
                 status varchar(20) DEFAULT 'pending',
                 mautic_contact_id varchar(100) DEFAULT '',
                 error_message text DEFAULT '',
@@ -1484,7 +1735,10 @@ try {
                 KEY form_id (form_id),
                 KEY email (email),
                 KEY status (status),
-                KEY segment_id (segment_id)
+                KEY segment_id (segment_id),
+                KEY utm_source (utm_source),
+                KEY utm_medium (utm_medium),
+                KEY utm_campaign (utm_campaign)
             ) $charset_collate;";
             
             require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
@@ -1938,6 +2192,86 @@ try {
             return array();
         }
     }
+    
+    // UTM Analytics functions
+    function thrive_mautic_get_utm_stats() {
+        try {
+            global $wpdb;
+            $table_name = $wpdb->prefix . 'thrive_mautic_submissions';
+            
+            // Get total UTM leads
+            $total_utm_leads = $wpdb->get_var("SELECT COUNT(*) FROM $table_name WHERE utm_source != ''");
+            
+            // Get top source
+            $top_source = $wpdb->get_row("SELECT utm_source, COUNT(*) as count FROM $table_name WHERE utm_source != '' GROUP BY utm_source ORDER BY count DESC LIMIT 1");
+            
+            // Get top campaign
+            $top_campaign = $wpdb->get_row("SELECT utm_campaign, COUNT(*) as count FROM $table_name WHERE utm_campaign != '' GROUP BY utm_campaign ORDER BY count DESC LIMIT 1");
+            
+            // Get conversion rate (simplified - could be enhanced with actual conversion data)
+            $total_leads = $wpdb->get_var("SELECT COUNT(*) FROM $table_name");
+            $conversion_rate = $total_leads > 0 ? round(($total_utm_leads / $total_leads) * 100, 1) : 0;
+            
+            // Get sources breakdown
+            $sources = $wpdb->get_results("
+                SELECT 
+                    utm_source as source,
+                    utm_medium as medium,
+                    COUNT(*) as count,
+                    MAX(created_at) as last_lead
+                FROM $table_name 
+                WHERE utm_source != '' 
+                GROUP BY utm_source, utm_medium 
+                ORDER BY count DESC 
+                LIMIT 10
+            ", ARRAY_A);
+            
+            // Calculate percentages for sources
+            foreach ($sources as &$source) {
+                $source['percentage'] = $total_utm_leads > 0 ? round(($source['count'] / $total_utm_leads) * 100, 1) : 0;
+                $source['last_lead'] = human_time_diff(strtotime($source['last_lead']), current_time('timestamp')) . ' ago';
+            }
+            
+            // Get campaigns breakdown
+            $campaigns = $wpdb->get_results("
+                SELECT 
+                    utm_campaign as campaign,
+                    utm_source as source,
+                    utm_medium as medium,
+                    utm_content as content,
+                    utm_term as term,
+                    COUNT(*) as count
+                FROM $table_name 
+                WHERE utm_campaign != '' 
+                GROUP BY utm_campaign, utm_source, utm_medium, utm_content, utm_term 
+                ORDER BY count DESC 
+                LIMIT 10
+            ", ARRAY_A);
+            
+            return array(
+                'total_utm_leads' => intval($total_utm_leads),
+                'top_source' => $top_source ? $top_source->utm_source : 'None',
+                'top_source_count' => $top_source ? $top_source->count : 0,
+                'top_campaign' => $top_campaign ? $top_campaign->utm_campaign : 'None',
+                'top_campaign_count' => $top_campaign ? $top_campaign->count : 0,
+                'conversion_rate' => $conversion_rate,
+                'sources' => $sources,
+                'campaigns' => $campaigns
+            );
+            
+        } catch (Exception $e) {
+            return array(
+                'total_utm_leads' => 0,
+                'top_source' => 'None',
+                'top_source_count' => 0,
+                'top_campaign' => 'None',
+                'top_campaign_count' => 0,
+                'conversion_rate' => 0,
+                'sources' => array(),
+                'campaigns' => array()
+            );
+        }
+    }
 
     // Plugin activation hook
     register_activation_hook(__FILE__, function() {
@@ -2348,6 +2682,211 @@ try {
         }
     }
     
+    // UTM tracking system
+    function thrive_mautic_insert_utm_tracking() {
+        try {
+            // Only add UTM tracking on frontend
+            if (is_admin()) {
+                return;
+            }
+            
+            ?>
+            <script type="text/javascript">
+            // Thrive-Mautic UTM Tracking System
+            (function() {
+                'use strict';
+                
+                // UTM parameter names
+                const UTM_PARAMS = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term'];
+                const STORAGE_KEY = 'thrive_mautic_utm_data';
+                const COOKIE_NAME = 'thrive_mautic_utm';
+                const COOKIE_DAYS = 30;
+                
+                // Get UTM parameters from URL
+                function getUTMParameters() {
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const utmData = {};
+                    
+                    UTM_PARAMS.forEach(function(param) {
+                        const value = urlParams.get(param);
+                        if (value) {
+                            utmData[param] = value;
+                        }
+                    });
+                    
+                    return utmData;
+                }
+                
+                // Store UTM data in multiple ways for persistence
+                function storeUTMData(utmData) {
+                    if (Object.keys(utmData).length === 0) {
+                        return;
+                    }
+                    
+                    // Store in sessionStorage (immediate access)
+                    try {
+                        sessionStorage.setItem(STORAGE_KEY, JSON.stringify(utmData));
+                    } catch (e) {
+                        console.log('SessionStorage not available');
+                    }
+                    
+                    // Store in localStorage (persistent)
+                    try {
+                        localStorage.setItem(STORAGE_KEY, JSON.stringify(utmData));
+                    } catch (e) {
+                        console.log('LocalStorage not available');
+                    }
+                    
+                    // Store in cookie (server-side access)
+                    try {
+                        const expires = new Date();
+                        expires.setTime(expires.getTime() + (COOKIE_DAYS * 24 * 60 * 60 * 1000));
+                        document.cookie = COOKIE_NAME + '=' + encodeURIComponent(JSON.stringify(utmData)) + 
+                                        ';expires=' + expires.toUTCString() + ';path=/';
+                    } catch (e) {
+                        console.log('Cookie storage not available');
+                    }
+                }
+                
+                // Retrieve UTM data from storage
+                function getStoredUTMData() {
+                    // Try sessionStorage first
+                    try {
+                        const sessionData = sessionStorage.getItem(STORAGE_KEY);
+                        if (sessionData) {
+                            return JSON.parse(sessionData);
+                        }
+                    } catch (e) {
+                        console.log('SessionStorage read failed');
+                    }
+                    
+                    // Try localStorage
+                    try {
+                        const localData = localStorage.getItem(STORAGE_KEY);
+                        if (localData) {
+                            return JSON.parse(localData);
+                        }
+                    } catch (e) {
+                        console.log('LocalStorage read failed');
+                    }
+                    
+                    // Try cookie
+                    try {
+                        const cookies = document.cookie.split(';');
+                        for (let i = 0; i < cookies.length; i++) {
+                            const cookie = cookies[i].trim();
+                            if (cookie.indexOf(COOKIE_NAME + '=') === 0) {
+                                const cookieData = cookie.substring(COOKIE_NAME.length + 1);
+                                return JSON.parse(decodeURIComponent(cookieData));
+                            }
+                        }
+                    } catch (e) {
+                        console.log('Cookie read failed');
+                    }
+                    
+                    return {};
+                }
+                
+                // Add UTM data to forms
+                function addUTMToForms() {
+                    const utmData = getStoredUTMData();
+                    if (Object.keys(utmData).length === 0) {
+                        return;
+                    }
+                    
+                    // Add UTM fields to all forms
+                    const forms = document.querySelectorAll('form');
+                    forms.forEach(function(form) {
+                        // Check if this is a Thrive form
+                        if (form.classList.contains('tve-form') || 
+                            form.classList.contains('tve_lead_form') || 
+                            form.classList.contains('tve_quiz_form') ||
+                            form.classList.contains('tve_lightbox_form')) {
+                            
+                            // Add UTM fields as hidden inputs
+                            Object.keys(utmData).forEach(function(key) {
+                                const existingField = form.querySelector('input[name="' + key + '"]');
+                                if (!existingField) {
+                                    const hiddenField = document.createElement('input');
+                                    hiddenField.type = 'hidden';
+                                    hiddenField.name = key;
+                                    hiddenField.value = utmData[key];
+                                    form.appendChild(hiddenField);
+                                }
+                            });
+                        }
+                    });
+                }
+                
+                // Initialize UTM tracking
+                function initUTMTracking() {
+                    // Get UTM parameters from current URL
+                    const currentUTM = getUTMParameters();
+                    
+                    // Get stored UTM data
+                    const storedUTM = getStoredUTMData();
+                    
+                    // Merge current UTM with stored (current takes priority)
+                    const finalUTM = Object.assign({}, storedUTM, currentUTM);
+                    
+                    // Store the final UTM data
+                    if (Object.keys(finalUTM).length > 0) {
+                        storeUTMData(finalUTM);
+                    }
+                    
+                    // Add UTM data to forms
+                    addUTMToForms();
+                    
+                    // Re-add UTM data to forms when new forms are loaded (for dynamic content)
+                    const observer = new MutationObserver(function(mutations) {
+                        mutations.forEach(function(mutation) {
+                            if (mutation.type === 'childList') {
+                                mutation.addedNodes.forEach(function(node) {
+                                    if (node.nodeType === 1) { // Element node
+                                        if (node.tagName === 'FORM' || node.querySelector('form')) {
+                                            addUTMToForms();
+                                        }
+                                    }
+                                });
+                            }
+                        });
+                    });
+                    
+                    observer.observe(document.body, {
+                        childList: true,
+                        subtree: true
+                    });
+                }
+                
+                // Start UTM tracking when DOM is ready
+                if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', initUTMTracking);
+                } else {
+                    initUTMTracking();
+                }
+                
+                // Make UTM data available globally for debugging
+                window.thriveMauticUTM = {
+                    getData: getStoredUTMData,
+                    clearData: function() {
+                        try {
+                            sessionStorage.removeItem(STORAGE_KEY);
+                            localStorage.removeItem(STORAGE_KEY);
+                            document.cookie = COOKIE_NAME + '=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/;';
+                        } catch (e) {
+                            console.log('UTM data clear failed');
+                        }
+                    }
+                };
+                
+            })();
+            </script>
+            <?php
+        } catch (Exception $e) {
+            // Silent fail - don't break the site
+        }
+    }
+    
     // Function to determine if tracking should be shown
     function thrive_mautic_should_show_tracking($tracking_pages, $specific_pages) {
         try {
@@ -2389,6 +2928,9 @@ try {
     
     // Add tracking to head
     add_action('wp_head', 'thrive_mautic_insert_tracking_code');
+    
+    // Add UTM tracking to head
+    add_action('wp_head', 'thrive_mautic_insert_utm_tracking');
     
     // Add tracking to footer (if position is set to footer)
     add_action('wp_footer', function() {
