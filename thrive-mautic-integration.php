@@ -3,7 +3,7 @@
  * Plugin Name: Thrive-Mautic Integration
  * Plugin URI: https://yourwebsite.com/thrive-mautic-integration
  * Description: Thrive Themes Integration With Mautic
- * Version: 5.8.2
+ * Version: 5.8.3
  * Author: Khodor Ghalayini
  * Author URI: https://yourwebsite.com
  * License: GPL v2 or later
@@ -18,7 +18,7 @@ if (!defined('ABSPATH')) {
 // WRAP EVERYTHING IN TRY-CATCH TO PREVENT CRASHES
 try {
     // Define plugin constants
-    define('THRIVE_MAUTIC_VERSION', '5.8.2');
+    define('THRIVE_MAUTIC_VERSION', '5.8.3');
     define('THRIVE_MAUTIC_PLUGIN_FILE', __FILE__);
     define('THRIVE_MAUTIC_PLUGIN_DIR', plugin_dir_path(__FILE__));
 
@@ -1547,6 +1547,226 @@ try {
                     } catch (Exception $e) {
                         echo '<div class="wrap"><h1>Script Verification</h1>';
                         echo '<div class="notice notice-error"><p>Script verification error occurred. Please check error logs.</p></div>';
+                        echo '</div>';
+                    }
+                }
+            );
+            
+            // Tagging Guide Submenu
+            add_submenu_page(
+                'thrive-mautic-dashboard',
+                'Tagging Guide',
+                'Tagging Guide',
+                'manage_options',
+                'thrive-mautic-tagging',
+                function() {
+                    try {
+                        echo '<div class="wrap">';
+                        echo '<h1>🏷️ Complete Tagging System Guide</h1>';
+                        
+                        // Automatic Tagging
+                        echo '<div style="background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin: 20px 0;">';
+                        echo '<h2>🤖 Automatic Tagging</h2>';
+                        echo '<p>Contacts are automatically tagged based on their behavior and form submissions.</p>';
+                        
+                        echo '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 20px 0;">';
+                        
+                        echo '<div>';
+                        echo '<h3>📝 Form Type Tags</h3>';
+                        echo '<div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 10px 0;">';
+                        echo '<table style="width: 100%; border-collapse: collapse;">';
+                        echo '<tr style="background: #e9ecef;"><th style="padding: 8px; border: 1px solid #ddd;">Form Type</th><th style="padding: 8px; border: 1px solid #ddd;">Tags</th></tr>';
+                        echo '<tr><td style="padding: 8px; border: 1px solid #ddd;">Newsletter Signup</td><td style="padding: 8px; border: 1px solid #ddd;"><code>newsletter, subscriber, email-list</code></td></tr>';
+                        echo '<tr><td style="padding: 8px; border: 1px solid #ddd;">Quiz Completion</td><td style="padding: 8px; border: 1px solid #ddd;"><code>quiz, engaged, interactive</code></td></tr>';
+                        echo '<tr><td style="padding: 8px; border: 1px solid #ddd;">Lead Magnet</td><td style="padding: 8px; border: 1px solid #ddd;"><code>lead-magnet, content-downloader, lead</code></td></tr>';
+                        echo '<tr><td style="padding: 8px; border: 1px solid #ddd;">Contact Form</td><td style="padding: 8px; border: 1px solid #ddd;"><code>contact, inquiry, support</code></td></tr>';
+                        echo '<tr><td style="padding: 8px; border: 1px solid #ddd;">Registration</td><td style="padding: 8px; border: 1px solid #ddd;"><code>registered, local-user, account</code></td></tr>';
+                        echo '</table>';
+                        echo '</div>';
+                        echo '</div>';
+                        
+                        echo '<div>';
+                        echo '<h3>🎯 UTM-Based Tags</h3>';
+                        echo '<div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 10px 0;">';
+                        echo '<p><strong>UTM Parameters automatically create tags:</strong></p>';
+                        echo '<ul style="margin: 10px 0; padding-left: 20px;">';
+                        echo '<li><code>utm_source=google</code> → <code>source-google</code></li>';
+                        echo '<li><code>utm_medium=cpc</code> → <code>medium-cpc</code></li>';
+                        echo '<li><code>utm_campaign=summer-sale</code> → <code>campaign-summer-sale</code></li>';
+                        echo '<li><code>utm_content=banner-ad</code> → <code>content-banner-ad</code></li>';
+                        echo '<li><code>utm_term=seo-tools</code> → <code>term-seo-tools</code></li>';
+                        echo '</ul>';
+                        echo '<p><strong>Special combinations:</strong></p>';
+                        echo '<ul style="margin: 10px 0; padding-left: 20px;">';
+                        echo '<li><code>traffic-google-cpc</code> (source + medium)</li>';
+                        echo '<li><code>campaign-summer-sale</code> (campaign name)</li>';
+                        echo '</ul>';
+                        echo '</div>';
+                        echo '</div>';
+                        
+                        echo '</div>';
+                        echo '</div>';
+                        
+                        // Custom Tagging
+                        echo '<div style="background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin: 20px 0;">';
+                        echo '<h2>✏️ Custom Tagging</h2>';
+                        echo '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">';
+                        
+                        echo '<div>';
+                        echo '<h3>📋 Hidden Field Method</h3>';
+                        echo '<div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 10px 0;">';
+                        echo '<p><strong>Add this hidden field to any form:</strong></p>';
+                        echo '<pre style="background: #e9ecef; padding: 10px; border-radius: 3px; overflow-x: auto;"><code>&lt;input type="hidden" name="thrive_mautic_tags" value="premium-user,seo-interested,high-value"&gt;</code></pre>';
+                        echo '<p><strong>Multiple tags:</strong> Separate with commas</p>';
+                        echo '<p><strong>Examples:</strong></p>';
+                        echo '<ul style="margin: 10px 0; padding-left: 20px;">';
+                        echo '<li><code>vip-customer,enterprise</code></li>';
+                        echo '<li><code>trial-user,feature-request</code></li>';
+                        echo '<li><code>affiliate,partner</code></li>';
+                        echo '</ul>';
+                        echo '</div>';
+                        echo '</div>';
+                        
+                        echo '<div>';
+                        echo '<h3>🎯 Mautic Dashboard</h3>';
+                        echo '<div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 10px 0;">';
+                        echo '<p><strong>Manual tagging in Mautic:</strong></p>';
+                        echo '<ol style="margin: 10px 0; padding-left: 20px;">';
+                        echo '<li>Go to <strong>Contacts</strong> in Mautic</li>';
+                        echo '<li>Select a contact</li>';
+                        echo '<li>Click <strong>Edit</strong></li>';
+                        echo '<li>Add tags in the <strong>Tags</strong> field</li>';
+                        echo '<li>Save changes</li>';
+                        echo '</ol>';
+                        echo '<p><strong>Bulk tagging:</strong> Select multiple contacts and use bulk actions</p>';
+                        echo '</div>';
+                        echo '</div>';
+                        
+                        echo '</div>';
+                        echo '</div>';
+                        
+                        // Time-Based Tags
+                        echo '<div style="background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin: 20px 0;">';
+                        echo '<h2>⏰ Time-Based Tags</h2>';
+                        echo '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">';
+                        
+                        echo '<div>';
+                        echo '<h3>🕘 Business Hours</h3>';
+                        echo '<div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 10px 0;">';
+                        echo '<p><strong>Automatic time-based tagging:</strong></p>';
+                        echo '<ul style="margin: 10px 0; padding-left: 20px;">';
+                        echo '<li><code>business-hours</code> (9 AM - 5 PM)</li>';
+                        echo '<li><code>after-hours</code> (5 PM - 9 AM)</li>';
+                        echo '<li><code>weekday</code> (Monday - Friday)</li>';
+                        echo '<li><code>weekend</code> (Saturday - Sunday)</li>';
+                        echo '</ul>';
+                        echo '</div>';
+                        echo '</div>';
+                        
+                        echo '<div>';
+                        echo '<h3>🔍 System Tags</h3>';
+                        echo '<div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 10px 0;">';
+                        echo '<p><strong>Automatic system tags:</strong></p>';
+                        echo '<ul style="margin: 10px 0; padding-left: 20px;">';
+                        echo '<li><code>thrive-mautic-plugin</code> (Plugin identification)</li>';
+                        echo '<li><code>wordpress-lead</code> (WordPress source)</li>';
+                        echo '<li><code>thrive-architect</code> (Form type)</li>';
+                        echo '<li><code>thrive-leads</code> (Lead capture)</li>';
+                        echo '<li><code>thrive-quiz</code> (Quiz completion)</li>';
+                        echo '<li><code>thrive-lightbox</code> (Lightbox form)</li>';
+                        echo '</ul>';
+                        echo '</div>';
+                        echo '</div>';
+                        
+                        echo '</div>';
+                        echo '</div>';
+                        
+                        // Tag Management
+                        echo '<div style="background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin: 20px 0;">';
+                        echo '<h2>🛠️ Tag Management</h2>';
+                        echo '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">';
+                        
+                        echo '<div>';
+                        echo '<h3>📊 View Contact Tags</h3>';
+                        echo '<div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 10px 0;">';
+                        echo '<p><strong>In WordPress:</strong></p>';
+                        echo '<ol style="margin: 10px 0; padding-left: 20px;">';
+                        echo '<li>Go to <strong>Thrive-Mautic Dashboard</strong> → <strong>Contact Sync</strong></li>';
+                        echo '<li>View the <strong>Tags</strong> column in the contacts table</li>';
+                        echo '<li>See all tags for each contact</li>';
+                        echo '</ol>';
+                        echo '<p><strong>In Mautic:</strong></p>';
+                        echo '<ol style="margin: 10px 0; padding-left: 20px;">';
+                        echo '<li>Go to <strong>Contacts</strong></li>';
+                        echo '<li>Click on any contact</li>';
+                        echo '<li>View tags in the contact details</li>';
+                        echo '</ol>';
+                        echo '</div>';
+                        echo '</div>';
+                        
+                        echo '<div>';
+                        echo '<h3>🎯 Tag-Based Segmentation</h3>';
+                        echo '<div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 10px 0;">';
+                        echo '<p><strong>Use tags for advanced segmentation:</strong></p>';
+                        echo '<ul style="margin: 10px 0; padding-left: 20px;">';
+                        echo '<li>Create segments based on tags</li>';
+                        echo '<li>Send targeted campaigns</li>';
+                        echo '<li>Track engagement by tag</li>';
+                        echo '<li>Analyze conversion by source</li>';
+                        echo '</ul>';
+                        echo '<p><strong>Example segments:</strong></p>';
+                        echo '<ul style="margin: 10px 0; padding-left: 20px;">';
+                        echo '<li>All <code>newsletter</code> subscribers</li>';
+                        echo '<li>All <code>source-google</code> leads</li>';
+                        echo '<li>All <code>premium-user</code> contacts</li>';
+                        echo '</ul>';
+                        echo '</div>';
+                        echo '</div>';
+                        
+                        echo '</div>';
+                        echo '</div>';
+                        
+                        // Implementation Examples
+                        echo '<div style="background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin: 20px 0;">';
+                        echo '<h2>💡 Implementation Examples</h2>';
+                        echo '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">';
+                        
+                        echo '<div>';
+                        echo '<h3>📝 Form Examples</h3>';
+                        echo '<div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 10px 0;">';
+                        echo '<p><strong>Newsletter Signup Form:</strong></p>';
+                        echo '<pre style="background: #e9ecef; padding: 10px; border-radius: 3px; overflow-x: auto; font-size: 12px;"><code>&lt;form&gt;
+  &lt;input type="hidden" name="thrive_mautic_segment" value="newsletter_signup"&gt;
+  &lt;input type="hidden" name="thrive_mautic_tags" value="weekly-subscriber,content-interested"&gt;
+  &lt;input type="email" name="email" required&gt;
+  &lt;input type="text" name="name"&gt;
+  &lt;button type="submit"&gt;Subscribe&lt;/button&gt;
+&lt;/form&gt;</code></pre>';
+                        echo '</div>';
+                        echo '</div>';
+                        
+                        echo '<div>';
+                        echo '<h3>🎯 Lead Magnet Form</h3>';
+                        echo '<div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 10px 0;">';
+                        echo '<p><strong>Lead Magnet Download Form:</strong></p>';
+                        echo '<pre style="background: #e9ecef; padding: 10px; border-radius: 3px; overflow-x: auto; font-size: 12px;"><code>&lt;form&gt;
+  &lt;input type="hidden" name="thrive_mautic_segment" value="lead_magnet"&gt;
+  &lt;input type="hidden" name="thrive_mautic_tags" value="seo-guide,beginner,content-downloader"&gt;
+  &lt;input type="email" name="email" required&gt;
+  &lt;input type="text" name="name"&gt;
+  &lt;button type="submit"&gt;Download Guide&lt;/button&gt;
+&lt;/form&gt;</code></pre>';
+                        echo '</div>';
+                        echo '</div>';
+                        
+                        echo '</div>';
+                        echo '</div>';
+                        
+                        echo '</div>';
+                        
+                    } catch (Exception $e) {
+                        echo '<div class="wrap"><h1>Tagging Guide</h1>';
+                        echo '<div class="notice notice-error"><p>Tagging guide error occurred. Please check error logs.</p></div>';
                         echo '</div>';
                     }
                 }
@@ -4163,6 +4383,182 @@ try {
             
         } catch (Exception $e) {
             thrive_mautic_log('error', 'Settings restore failed: ' . $e->getMessage());
+        }
+    }
+    
+    // Comprehensive tagging system
+    function thrive_mautic_generate_automatic_tags($form_type, $utm_data = array(), $custom_tags = array()) {
+        try {
+            $tags = array();
+            
+            // 1. Form type tags
+            $form_type_tags = array(
+                'newsletter_signup' => array('newsletter', 'subscriber', 'email-list'),
+                'quiz_completion' => array('quiz', 'engaged', 'interactive'),
+                'lead_magnet' => array('lead-magnet', 'content-downloader', 'lead'),
+                'contact_form' => array('contact', 'inquiry', 'support'),
+                'local_registration' => array('registered', 'local-user', 'account'),
+                'google_oauth' => array('registered', 'google-user', 'account'),
+                'architect' => array('thrive-architect', 'form-submission'),
+                'leads' => array('thrive-leads', 'lead-capture'),
+                'quiz' => array('thrive-quiz', 'quiz-completion'),
+                'lightbox' => array('thrive-lightbox', 'popup-form')
+            );
+            
+            if (isset($form_type_tags[$form_type])) {
+                $tags = array_merge($tags, $form_type_tags[$form_type]);
+            }
+            
+            // 2. UTM-based tags
+            if (!empty($utm_data)) {
+                foreach ($utm_data as $utm_key => $utm_value) {
+                    if (!empty($utm_value)) {
+                        $tag_prefix = str_replace('utm_', '', $utm_key);
+                        $tags[] = $tag_prefix . '-' . sanitize_title($utm_value);
+                    }
+                }
+                
+                // Special UTM combinations
+                if (!empty($utm_data['utm_source']) && !empty($utm_data['utm_medium'])) {
+                    $tags[] = 'traffic-' . sanitize_title($utm_data['utm_source']) . '-' . sanitize_title($utm_data['utm_medium']);
+                }
+                
+                if (!empty($utm_data['utm_campaign'])) {
+                    $tags[] = 'campaign-' . sanitize_title($utm_data['utm_campaign']);
+                }
+            }
+            
+            // 3. Custom tags from form
+            if (!empty($custom_tags)) {
+                $tags = array_merge($tags, $custom_tags);
+            }
+            
+            // 4. Time-based tags
+            $current_hour = date('H');
+            if ($current_hour >= 9 && $current_hour <= 17) {
+                $tags[] = 'business-hours';
+            } else {
+                $tags[] = 'after-hours';
+            }
+            
+            $current_day = date('N'); // 1 = Monday, 7 = Sunday
+            if ($current_day >= 1 && $current_day <= 5) {
+                $tags[] = 'weekday';
+            } else {
+                $tags[] = 'weekend';
+            }
+            
+            // 5. Plugin identification
+            $tags[] = 'thrive-mautic-plugin';
+            $tags[] = 'wordpress-lead';
+            
+            // Remove duplicates and empty values
+            $tags = array_unique(array_filter($tags));
+            
+            // Sanitize all tags
+            $tags = array_map('sanitize_title', $tags);
+            
+            return $tags;
+            
+        } catch (Exception $e) {
+            thrive_mautic_log('error', 'Tag generation failed: ' . $e->getMessage());
+            return array('thrive-mautic-plugin');
+        }
+    }
+    
+    // Add tags to Mautic contact
+    function thrive_mautic_add_tags_to_contact($contact_id, $tags) {
+        try {
+            if (empty($contact_id) || empty($tags)) {
+                return false;
+            }
+            
+            $base_url = get_option('thrive_mautic_base_url', '');
+            $username = get_option('thrive_mautic_username', '');
+            $encrypted_password = get_option('thrive_mautic_password', '');
+            
+            if (empty($base_url) || empty($username) || empty($encrypted_password)) {
+                return false;
+            }
+            
+            $password = decrypt_password($encrypted_password);
+            
+            // Add tags to contact
+            $response = wp_remote_post($base_url . '/api/contacts/' . $contact_id . '/tags', array(
+                'headers' => array(
+                    'Authorization' => 'Basic ' . base64_encode($username . ':' . $password),
+                    'Content-Type' => 'application/json',
+                    'User-Agent' => 'Thrive-Mautic-Plugin/' . THRIVE_MAUTIC_VERSION
+                ),
+                'body' => json_encode(array('tags' => $tags)),
+                'timeout' => 10,
+                'sslverify' => true
+            ));
+            
+            if (is_wp_error($response)) {
+                thrive_mautic_log('error', 'Failed to add tags to contact: ' . $response->get_error_message());
+                return false;
+            }
+            
+            $response_code = wp_remote_retrieve_response_code($response);
+            if ($response_code === 200 || $response_code === 201) {
+                thrive_mautic_log('info', 'Tags added to contact ' . $contact_id . ': ' . implode(', ', $tags));
+                return true;
+            } else {
+                $response_body = wp_remote_retrieve_body($response);
+                thrive_mautic_log('error', 'Failed to add tags to contact. Response: ' . $response_body);
+                return false;
+            }
+            
+        } catch (Exception $e) {
+            thrive_mautic_log('error', 'Add tags to contact failed: ' . $e->getMessage());
+            return false;
+        }
+    }
+    
+    // Get contact tags from Mautic
+    function thrive_mautic_get_contact_tags($contact_id) {
+        try {
+            if (empty($contact_id)) {
+                return array();
+            }
+            
+            $base_url = get_option('thrive_mautic_base_url', '');
+            $username = get_option('thrive_mautic_username', '');
+            $encrypted_password = get_option('thrive_mautic_password', '');
+            
+            if (empty($base_url) || empty($username) || empty($encrypted_password)) {
+                return array();
+            }
+            
+            $password = decrypt_password($encrypted_password);
+            
+            $response = wp_remote_get($base_url . '/api/contacts/' . $contact_id . '/tags', array(
+                'headers' => array(
+                    'Authorization' => 'Basic ' . base64_encode($username . ':' . $password),
+                    'User-Agent' => 'Thrive-Mautic-Plugin/' . THRIVE_MAUTIC_VERSION
+                ),
+                'timeout' => 10,
+                'sslverify' => true
+            ));
+            
+            if (is_wp_error($response)) {
+                return array();
+            }
+            
+            $response_code = wp_remote_retrieve_response_code($response);
+            if ($response_code === 200) {
+                $data = json_decode(wp_remote_retrieve_body($response), true);
+                if (isset($data['tags']) && is_array($data['tags'])) {
+                    return $data['tags'];
+                }
+            }
+            
+            return array();
+            
+        } catch (Exception $e) {
+            thrive_mautic_log('error', 'Get contact tags failed: ' . $e->getMessage());
+            return array();
         }
     }
 
