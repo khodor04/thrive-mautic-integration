@@ -3,7 +3,7 @@
  * Plugin Name: Thrive-Mautic Integration
  * Plugin URI: https://yourwebsite.com/thrive-mautic-integration
  * Description: Thrive Themes Integration With Mautic
- * Version: 5.7.3
+ * Version: 5.7.4
  * Author: Khodor Ghalayini
  * Author URI: https://yourwebsite.com
  * License: GPL v2 or later
@@ -18,7 +18,7 @@ if (!defined('ABSPATH')) {
 // WRAP EVERYTHING IN TRY-CATCH TO PREVENT CRASHES
 try {
     // Define plugin constants
-    define('THRIVE_MAUTIC_VERSION', '5.7.3');
+    define('THRIVE_MAUTIC_VERSION', '5.7.4');
     define('THRIVE_MAUTIC_PLUGIN_FILE', __FILE__);
     define('THRIVE_MAUTIC_PLUGIN_DIR', plugin_dir_path(__FILE__));
 
@@ -570,6 +570,17 @@ try {
                             }
                             
                             update_option('thrive_mautic_auto_update', isset($_POST['auto_update']));
+                            
+                            // Save tracking settings
+                            update_option('thrive_mautic_tracking_enabled', isset($_POST['tracking_enabled']));
+                            update_option('thrive_mautic_custom_tracking_script', wp_kses($_POST['custom_tracking_script'], array(
+                                'script' => array(),
+                                'noscript' => array()
+                            )));
+                            update_option('thrive_mautic_tracking_position', sanitize_text_field($_POST['tracking_position']));
+                            update_option('thrive_mautic_tracking_pages', sanitize_text_field($_POST['tracking_pages']));
+                            update_option('thrive_mautic_specific_pages', sanitize_text_field($_POST['specific_pages']));
+                            
                             echo '<div class="notice notice-success"><p>Settings saved successfully!</p></div>';
                         }
                         
@@ -633,6 +644,82 @@ try {
                         
                         echo '</table>';
                         
+                        // Mautic Tracking Settings Section
+                        echo '<h2 style="margin-top: 30px;">Mautic Tracking Settings</h2>';
+                        echo '<table class="form-table">';
+                        
+                        // Enable Tracking
+                        $tracking_enabled = get_option('thrive_mautic_tracking_enabled', false);
+                        echo '<tr>';
+                        echo '<th scope="row">Enable Mautic Tracking</th>';
+                        echo '<td>';
+                        echo '<label>';
+                        echo '<input type="checkbox" name="tracking_enabled" value="1" ' . checked($tracking_enabled, true, false) . '>';
+                        echo ' Enable Mautic tracking script on website';
+                        echo '</label>';
+                        echo '<p class="description">When enabled, Mautic tracking script will be inserted on all pages.</p>';
+                        echo '</td>';
+                        echo '</tr>';
+                        
+                        // Custom Tracking Script
+                        $custom_tracking_script = get_option('thrive_mautic_custom_tracking_script', '');
+                        echo '<tr>';
+                        echo '<th scope="row"><label for="custom_tracking_script">Custom Tracking Script</label></th>';
+                        echo '<td>';
+                        echo '<textarea id="custom_tracking_script" name="custom_tracking_script" rows="8" cols="80" class="large-text code" placeholder="Paste your Mautic tracking script here...">' . esc_textarea($custom_tracking_script) . '</textarea>';
+                        echo '<p class="description">Paste your complete Mautic tracking script from <strong>Mautic → Configuration → Tracking Settings</strong>. Include the full &lt;script&gt; tags.</p>';
+                        echo '<p class="description"><strong>Example:</strong><br>';
+                        echo '<code>&lt;script&gt;<br>';
+                        echo '    (function(w,d,t,u,n,a,m){w[\'MauticTrackingObject\']=n;<br>';
+                        echo '        w[n]=w[n]||function(){(w[n].q=w[n].q||[]).push(arguments)},a=d.createElement(t),<br>';
+                        echo '        m=d.getElementsByTagName(t)[0];a.async=1;a.src=u;m.parentNode.insertBefore(a,m)<br>';
+                        echo '    })(window,document,\'script\',\'http://mautic.aipoweredkit.com/mtc.js\',\'mt\');<br>';
+                        echo '    mt(\'send\', \'pageview\');<br>';
+                        echo '&lt;/script&gt;</code></p>';
+                        echo '</td>';
+                        echo '</tr>';
+                        
+                        // Tracking Position
+                        $tracking_position = get_option('thrive_mautic_tracking_position', 'footer');
+                        echo '<tr>';
+                        echo '<th scope="row">Tracking Position</th>';
+                        echo '<td>';
+                        echo '<select name="tracking_position">';
+                        echo '<option value="head" ' . selected($tracking_position, 'head', false) . '>In &lt;head&gt; section (faster loading)</option>';
+                        echo '<option value="footer" ' . selected($tracking_position, 'footer', false) . '>Before &lt;/body&gt; tag (recommended)</option>';
+                        echo '</select>';
+                        echo '<p class="description">Choose where to insert the tracking script. Footer is recommended for better page load performance.</p>';
+                        echo '</td>';
+                        echo '</tr>';
+                        
+                        // Tracking Pages
+                        $tracking_pages = get_option('thrive_mautic_tracking_pages', 'all');
+                        echo '<tr>';
+                        echo '<th scope="row">Tracking Pages</th>';
+                        echo '<td>';
+                        echo '<select name="tracking_pages">';
+                        echo '<option value="all" ' . selected($tracking_pages, 'all', false) . '>All pages</option>';
+                        echo '<option value="frontend" ' . selected($tracking_pages, 'frontend', false) . '>Frontend only (not admin)</option>';
+                        echo '<option value="specific" ' . selected($tracking_pages, 'specific', false) . '>Specific pages only</option>';
+                        echo '</select>';
+                        echo '<p class="description">Choose which pages to include tracking on.</p>';
+                        echo '</td>';
+                        echo '</tr>';
+                        
+                        // Specific Pages (if specific is selected)
+                        if ($tracking_pages === 'specific') {
+                            $specific_pages = get_option('thrive_mautic_specific_pages', '');
+                            echo '<tr id="specific-pages-row">';
+                            echo '<th scope="row"><label for="specific_pages">Specific Page IDs</label></th>';
+                            echo '<td>';
+                            echo '<input type="text" id="specific_pages" name="specific_pages" value="' . esc_attr($specific_pages) . '" class="regular-text" placeholder="1,2,3 or /page-slug/">';
+                            echo '<p class="description">Enter page IDs (comma-separated) or page slugs. Leave empty for all pages.</p>';
+                            echo '</td>';
+                            echo '</tr>';
+                        }
+                        
+                        echo '</table>';
+                        
                         echo '<p class="submit">';
                         echo '<input type="submit" name="save_settings" class="button-primary" value="Save Settings">';
                         echo '<button type="button" id="test-connection" class="button" style="margin-left: 10px;">Test Mautic Connection</button>';
@@ -645,7 +732,7 @@ try {
                         // Update Check Result
                         echo '<div id="update-result" style="margin-top: 15px;"></div>';
                         
-                        // JavaScript to prevent auto-fill interference
+                        // JavaScript to prevent auto-fill interference and handle dynamic fields
                         echo '<script>
                         // Clear any cached auto-fill data
                         document.addEventListener("DOMContentLoaded", function() {
@@ -659,6 +746,27 @@ try {
                                     input.setAttribute("data-lpignore", "true");
                                 }
                             });
+                            
+                            // Handle tracking pages selection
+                            var trackingPagesSelect = document.querySelector("select[name=tracking_pages]");
+                            var specificPagesRow = document.getElementById("specific-pages-row");
+                            
+                            function toggleSpecificPages() {
+                                if (trackingPagesSelect.value === "specific") {
+                                    if (specificPagesRow) {
+                                        specificPagesRow.style.display = "";
+                                    }
+                                } else {
+                                    if (specificPagesRow) {
+                                        specificPagesRow.style.display = "none";
+                                    }
+                                }
+                            }
+                            
+                            if (trackingPagesSelect) {
+                                trackingPagesSelect.addEventListener("change", toggleSpecificPages);
+                                toggleSpecificPages(); // Initial call
+                            }
                         });
                         
                         // JavaScript for test connection
@@ -1469,25 +1577,105 @@ try {
         return $schedules;
     });
     
-    // Mautic tracking code
-    add_action('wp_head', function() {
+    // Mautic tracking code - Flexible system
+    function thrive_mautic_insert_tracking_code() {
         try {
-            $base_url = get_option('thrive_mautic_base_url', '');
-            if (empty($base_url)) {
+            // Check if tracking is enabled
+            $tracking_enabled = get_option('thrive_mautic_tracking_enabled', false);
+            if (!$tracking_enabled) {
                 return;
             }
             
-            echo '<!-- Mautic Tracking Code -->';
-            echo '<script type="text/javascript">';
-            echo '(function(w,d,t,u,n,a,m){w["MauticTrackingObject"]=n;';
-            echo 'w[n]=w[n]||function(){(w[n].q=w[n].q||[]).push(arguments)},a=d.createElement(t),';
-            echo 'm=d.getElementsByTagName(t)[0];a.async=1;a.src=u;m.parentNode.insertBefore(a,m)';
-            echo '})(window,document,"script","' . esc_url($base_url) . '/mtc.js","mt");';
-            echo '</script>';
-            echo '<!-- End Mautic Tracking Code -->';
+            // Get tracking settings
+            $custom_script = get_option('thrive_mautic_custom_tracking_script', '');
+            $tracking_position = get_option('thrive_mautic_tracking_position', 'footer');
+            $tracking_pages = get_option('thrive_mautic_tracking_pages', 'all');
+            $specific_pages = get_option('thrive_mautic_specific_pages', '');
+            
+            // Check if we should show tracking on this page
+            if (!thrive_mautic_should_show_tracking($tracking_pages, $specific_pages)) {
+                return;
+            }
+            
+            // Validate custom script
+            if (empty($custom_script)) {
+                thrive_mautic_log('warning', 'Mautic tracking enabled but no custom script provided');
+                return;
+            }
+            
+            // Sanitize and output the tracking script
+            $sanitized_script = wp_kses($custom_script, array(
+                'script' => array(
+                    'type' => array(),
+                    'src' => array(),
+                    'async' => array(),
+                    'defer' => array()
+                ),
+                'noscript' => array()
+            ));
+            
+            if (!empty($sanitized_script)) {
+                echo '<!-- Mautic Tracking Code (Thrive-Mautic Plugin) -->';
+                echo $sanitized_script;
+                echo '<!-- End Mautic Tracking Code -->';
+            }
             
         } catch (Exception $e) {
-            // Silent fail - don't crash
+            thrive_mautic_log('error', 'Tracking code insertion error: ' . $e->getMessage());
+        }
+    }
+    
+    // Function to determine if tracking should be shown
+    function thrive_mautic_should_show_tracking($tracking_pages, $specific_pages) {
+        try {
+            switch ($tracking_pages) {
+                case 'frontend':
+                    return !is_admin();
+                    
+                case 'specific':
+                    if (empty($specific_pages)) {
+                        return true; // If no specific pages set, show on all
+                    }
+                    
+                    $page_ids = array_map('trim', explode(',', $specific_pages));
+                    $current_page_id = get_the_ID();
+                    $current_page_slug = get_post_field('post_name', get_post());
+                    
+                    foreach ($page_ids as $page_id) {
+                        if (is_numeric($page_id)) {
+                            if ($current_page_id == intval($page_id)) {
+                                return true;
+                            }
+                        } else {
+                            // Check by slug
+                            if ($current_page_slug === $page_id || strpos($current_page_slug, $page_id) !== false) {
+                                return true;
+                            }
+                        }
+                    }
+                    return false;
+                    
+                case 'all':
+                default:
+                    return true;
+            }
+        } catch (Exception $e) {
+            return true; // Default to showing tracking if error
+        }
+    }
+    
+    // Add tracking to head
+    add_action('wp_head', 'thrive_mautic_insert_tracking_code');
+    
+    // Add tracking to footer (if position is set to footer)
+    add_action('wp_footer', function() {
+        try {
+            $tracking_position = get_option('thrive_mautic_tracking_position', 'footer');
+            if ($tracking_position === 'footer') {
+                thrive_mautic_insert_tracking_code();
+            }
+        } catch (Exception $e) {
+            // Silent fail
         }
     });
 
