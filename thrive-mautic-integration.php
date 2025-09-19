@@ -3,7 +3,7 @@
  * Plugin Name: Thrive-Mautic Integration
  * Plugin URI: https://yourwebsite.com/thrive-mautic-integration
  * Description: Thrive Themes Integration With Mautic
- * Version: 5.7.8
+ * Version: 5.7.9
  * Author: Khodor Ghalayini
  * Author URI: https://yourwebsite.com
  * License: GPL v2 or later
@@ -18,7 +18,7 @@ if (!defined('ABSPATH')) {
 // WRAP EVERYTHING IN TRY-CATCH TO PREVENT CRASHES
 try {
     // Define plugin constants
-    define('THRIVE_MAUTIC_VERSION', '5.7.8');
+    define('THRIVE_MAUTIC_VERSION', '5.7.9');
     define('THRIVE_MAUTIC_PLUGIN_FILE', __FILE__);
     define('THRIVE_MAUTIC_PLUGIN_DIR', plugin_dir_path(__FILE__));
 
@@ -806,6 +806,268 @@ try {
                     } catch (Exception $e) {
                         echo '<div class="wrap"><h1>UTM Analytics Dashboard</h1>';
                         echo '<div class="notice notice-error"><p>UTM analytics error occurred. Please check error logs.</p></div>';
+                        echo '</div>';
+                    }
+                }
+            );
+            
+            // Form Setup Guide Submenu
+            add_submenu_page(
+                'thrive-mautic-dashboard',
+                'Form Setup Guide',
+                'Form Setup Guide',
+                'manage_options',
+                'thrive-mautic-form-setup',
+                function() {
+                    try {
+                        echo '<div class="wrap">';
+                        echo '<h1>📝 Complete Form Setup Guide</h1>';
+                        
+                        // Form Requirements
+                        echo '<div style="background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin: 20px 0;">';
+                        echo '<h2>🎯 MUST-HAVE Fields for ALL Forms</h2>';
+                        echo '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin: 20px 0;">';
+                        
+                        echo '<div>';
+                        echo '<h3>📋 Required Fields</h3>';
+                        echo '<div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 10px 0;">';
+                        echo '<h4>1. Hidden Segment Field (REQUIRED)</h4>';
+                        echo '<code style="background: #e9ecef; padding: 5px; border-radius: 3px; display: block; margin: 5px 0;">&lt;input type="hidden" name="thrive_mautic_segment" value="[SEGMENT_NAME]"&gt;</code>';
+                        echo '<p style="font-size: 14px; color: #666; margin: 10px 0;">This tells the plugin which segment to assign the lead to.</p>';
+                        echo '</div>';
+                        
+                        echo '<div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 10px 0;">';
+                        echo '<h4>2. Email Field (REQUIRED)</h4>';
+                        echo '<code style="background: #e9ecef; padding: 5px; border-radius: 3px; display: block; margin: 5px 0;">&lt;input type="email" name="email" required&gt;</code>';
+                        echo '<p style="font-size: 14px; color: #666; margin: 10px 0;">Primary identifier for the lead.</p>';
+                        echo '</div>';
+                        
+                        echo '<div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 10px 0;">';
+                        echo '<h4>3. Name Field (RECOMMENDED)</h4>';
+                        echo '<code style="background: #e9ecef; padding: 5px; border-radius: 3px; display: block; margin: 5px 0;">&lt;input type="text" name="name"&gt;</code>';
+                        echo '<p style="font-size: 14px; color: #666; margin: 10px 0;">Personalizes the experience.</p>';
+                        echo '</div>';
+                        echo '</div>';
+                        
+                        echo '<div>';
+                        echo '<h3>🏷️ Segment Values by Form Type</h3>';
+                        echo '<table style="width: 100%; border-collapse: collapse; margin: 10px 0;">';
+                        echo '<tr style="background: #f8f9fa;"><th style="padding: 10px; border: 1px solid #ddd;">Form Type</th><th style="padding: 10px; border: 1px solid #ddd;">Segment Value</th></tr>';
+                        echo '<tr><td style="padding: 10px; border: 1px solid #ddd;">Newsletter Signup</td><td style="padding: 10px; border: 1px solid #ddd;"><code>newsletter_signup</code></td></tr>';
+                        echo '<tr><td style="padding: 10px; border: 1px solid #ddd;">Quiz Completion</td><td style="padding: 10px; border: 1px solid #ddd;"><code>quiz_completion</code></td></tr>';
+                        echo '<tr><td style="padding: 10px; border: 1px solid #ddd;">Lead Magnet Download</td><td style="padding: 10px; border: 1px solid #ddd;"><code>lead_magnet</code></td></tr>';
+                        echo '<tr><td style="padding: 10px; border: 1px solid #ddd;">Contact Form</td><td style="padding: 10px; border: 1px solid #ddd;"><code>contact_form</code></td></tr>';
+                        echo '<tr><td style="padding: 10px; border: 1px solid #ddd;">Registration (Local)</td><td style="padding: 10px; border: 1px solid #ddd;"><code>local_registration</code></td></tr>';
+                        echo '<tr><td style="padding: 10px; border: 1px solid #ddd;">Registration (Google)</td><td style="padding: 10px; border: 1px solid #ddd;"><code>google_oauth</code></td></tr>';
+                        echo '</table>';
+                        echo '</div>';
+                        
+                        echo '</div>';
+                        echo '</div>';
+                        
+                        // Form Examples
+                        echo '<div style="background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin: 20px 0;">';
+                        echo '<h2>📝 Form Examples</h2>';
+                        echo '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">';
+                        
+                        echo '<div>';
+                        echo '<h3>Newsletter Signup Form</h3>';
+                        echo '<div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 10px 0;">';
+                        echo '<pre style="background: #e9ecef; padding: 10px; border-radius: 3px; overflow-x: auto;"><code>&lt;form&gt;
+  &lt;input type="hidden" name="thrive_mautic_segment" value="newsletter_signup"&gt;
+  &lt;input type="email" name="email" placeholder="Your email" required&gt;
+  &lt;input type="text" name="name" placeholder="Your name"&gt;
+  &lt;button type="submit"&gt;Subscribe&lt;/button&gt;
+&lt;/form&gt;</code></pre>';
+                        echo '</div>';
+                        echo '</div>';
+                        
+                        echo '<div>';
+                        echo '<h3>Lead Magnet Download Form</h3>';
+                        echo '<div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 10px 0;">';
+                        echo '<pre style="background: #e9ecef; padding: 10px; border-radius: 3px; overflow-x: auto;"><code>&lt;form&gt;
+  &lt;input type="hidden" name="thrive_mautic_segment" value="lead_magnet"&gt;
+  &lt;input type="email" name="email" placeholder="Your email" required&gt;
+  &lt;input type="text" name="name" placeholder="Your name"&gt;
+  &lt;input type="text" name="company" placeholder="Company"&gt;
+  &lt;button type="submit"&gt;Download Now&lt;/button&gt;
+&lt;/form&gt;</code></pre>';
+                        echo '</div>';
+                        echo '</div>';
+                        
+                        echo '<div>';
+                        echo '<h3>Quiz Completion Form</h3>';
+                        echo '<div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 10px 0;">';
+                        echo '<pre style="background: #e9ecef; padding: 10px; border-radius: 3px; overflow-x: auto;"><code>&lt;form&gt;
+  &lt;input type="hidden" name="thrive_mautic_segment" value="quiz_completion"&gt;
+  &lt;input type="email" name="email" placeholder="Your email" required&gt;
+  &lt;input type="text" name="name" placeholder="Your name"&gt;
+  &lt;input type="hidden" name="quiz_result" value="beginner"&gt;
+  &lt;button type="submit"&gt;Get Results&lt;/button&gt;
+&lt;/form&gt;</code></pre>';
+                        echo '</div>';
+                        echo '</div>';
+                        
+                        echo '<div>';
+                        echo '<h3>Contact Form</h3>';
+                        echo '<div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 10px 0;">';
+                        echo '<pre style="background: #e9ecef; padding: 10px; border-radius: 3px; overflow-x: auto;"><code>&lt;form&gt;
+  &lt;input type="hidden" name="thrive_mautic_segment" value="contact_form"&gt;
+  &lt;input type="email" name="email" placeholder="Your email" required&gt;
+  &lt;input type="text" name="name" placeholder="Your name"&gt;
+  &lt;input type="text" name="phone" placeholder="Phone"&gt;
+  &lt;textarea name="message" placeholder="Message"&gt;&lt;/textarea&gt;
+  &lt;button type="submit"&gt;Send Message&lt;/button&gt;
+&lt;/form&gt;</code></pre>';
+                        echo '</div>';
+                        echo '</div>';
+                        
+                        echo '</div>';
+                        echo '</div>';
+                        
+                        // Thank You Page Strategy
+                        echo '<div style="background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin: 20px 0;">';
+                        echo '<h2>🎯 Thank You Page Strategy</h2>';
+                        echo '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">';
+                        
+                        echo '<div>';
+                        echo '<h3>✅ RECOMMENDED: Dynamic Thank You Pages</h3>';
+                        echo '<p style="color: #28a745; font-weight: bold;">Don\'t use the same thank you page for all forms!</p>';
+                        echo '<div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 10px 0;">';
+                        echo '<h4>Why Different Thank You Pages?</h4>';
+                        echo '<ul style="margin: 10px 0; padding-left: 20px;">';
+                        echo '<li>Better user experience</li>';
+                        echo '<li>Higher conversion rates</li>';
+                        echo '<li>Personalized messaging</li>';
+                        echo '<li>Relevant next steps</li>';
+                        echo '<li>Better tracking and analytics</li>';
+                        echo '</ul>';
+                        echo '</div>';
+                        echo '</div>';
+                        
+                        echo '<div>';
+                        echo '<h3>🔗 Dynamic Thank You URLs</h3>';
+                        echo '<div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 10px 0;">';
+                        echo '<h4>URL Structure:</h4>';
+                        echo '<code style="background: #e9ecef; padding: 5px; border-radius: 3px; display: block; margin: 5px 0;">/thank-you/[form-type]</code>';
+                        echo '<p style="font-size: 14px; color: #666; margin: 10px 0;">Examples:</p>';
+                        echo '<ul style="margin: 5px 0; padding-left: 20px; font-size: 14px;">';
+                        echo '<li><code>/thank-you/newsletter</code></li>';
+                        echo '<li><code>/thank-you/quiz</code></li>';
+                        echo '<li><code>/thank-you/lead-magnet</code></li>';
+                        echo '<li><code>/thank-you/contact</code></li>';
+                        echo '</ul>';
+                        echo '</div>';
+                        echo '</div>';
+                        
+                        echo '</div>';
+                        echo '</div>';
+                        
+                        // Redirect Configuration
+                        echo '<div style="background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin: 20px 0;">';
+                        echo '<h2>🔄 Form Redirect Configuration</h2>';
+                        echo '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">';
+                        
+                        echo '<div>';
+                        echo '<h3>Thrive Architect Forms</h3>';
+                        echo '<div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 10px 0;">';
+                        echo '<h4>Redirect Settings:</h4>';
+                        echo '<ol style="margin: 10px 0; padding-left: 20px;">';
+                        echo '<li>Go to Thrive Architect</li>';
+                        echo '<li>Edit your form</li>';
+                        echo '<li>Go to "Form Settings"</li>';
+                        echo '<li>Set "Redirect URL" to:</li>';
+                        echo '<li><code>/thank-you/[form-type]</code></li>';
+                        echo '</ol>';
+                        echo '</div>';
+                        echo '</div>';
+                        
+                        echo '<div>';
+                        echo '<h3>Thrive Leads Forms</h3>';
+                        echo '<div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 10px 0;">';
+                        echo '<h4>Redirect Settings:</h4>';
+                        echo '<ol style="margin: 10px 0; padding-left: 20px;">';
+                        echo '<li>Go to Thrive Leads</li>';
+                        echo '<li>Edit your form</li>';
+                        echo '<li>Go to "Form Settings"</li>';
+                        echo '<li>Set "Redirect URL" to:</li>';
+                        echo '<li><code>/thank-you/[form-type]</code></li>';
+                        echo '</ol>';
+                        echo '</div>';
+                        echo '</div>';
+                        
+                        echo '<div>';
+                        echo '<h3>Thrive Quiz Forms</h3>';
+                        echo '<div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 10px 0;">';
+                        echo '<h4>Redirect Settings:</h4>';
+                        echo '<ol style="margin: 10px 0; padding-left: 20px;">';
+                        echo '<li>Go to Thrive Quiz Builder</li>';
+                        echo '<li>Edit your quiz</li>';
+                        echo '<li>Go to "Settings" → "Redirect"</li>';
+                        echo '<li>Set "Redirect URL" to:</li>';
+                        echo '<li><code>/thank-you/quiz</code></li>';
+                        echo '</ol>';
+                        echo '</div>';
+                        echo '</div>';
+                        
+                        echo '<div>';
+                        echo '<h3>Thrive Lightbox Forms</h3>';
+                        echo '<div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 10px 0;">';
+                        echo '<h4>Redirect Settings:</h4>';
+                        echo '<ol style="margin: 10px 0; padding-left: 20px;">';
+                        echo '<li>Go to Thrive Lightbox</li>';
+                        echo '<li>Edit your lightbox</li>';
+                        echo '<li>Go to "Form Settings"</li>';
+                        echo '<li>Set "Redirect URL" to:</li>';
+                        echo '<li><code>/thank-you/[form-type]</code></li>';
+                        echo '</ol>';
+                        echo '</div>';
+                        echo '</div>';
+                        
+                        echo '</div>';
+                        echo '</div>';
+                        
+                        // Implementation Checklist
+                        echo '<div style="background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin: 20px 0;">';
+                        echo '<h2>✅ Implementation Checklist</h2>';
+                        echo '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">';
+                        
+                        echo '<div>';
+                        echo '<h3>Form Setup</h3>';
+                        echo '<div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 10px 0;">';
+                        echo '<ul style="margin: 10px 0; padding-left: 20px;">';
+                        echo '<li>☐ Add hidden segment field to all forms</li>';
+                        echo '<li>☐ Set correct segment value for each form type</li>';
+                        echo '<li>☐ Ensure email field is required</li>';
+                        echo '<li>☐ Add name field (recommended)</li>';
+                        echo '<li>☐ Test form submission</li>';
+                        echo '<li>☐ Verify data appears in Mautic</li>';
+                        echo '</ul>';
+                        echo '</div>';
+                        echo '</div>';
+                        
+                        echo '<div>';
+                        echo '<h3>Thank You Pages</h3>';
+                        echo '<div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 10px 0;">';
+                        echo '<ul style="margin: 10px 0; padding-left: 20px;">';
+                        echo '<li>☐ Set up dynamic thank you URLs</li>';
+                        echo '<li>☐ Configure form redirects</li>';
+                        echo '<li>☐ Test each thank you page</li>';
+                        echo '<li>☐ Customize content for each form type</li>';
+                        echo '<li>☐ Add relevant CTAs</li>';
+                        echo '<li>☐ Test UTM tracking on thank you pages</li>';
+                        echo '</ul>';
+                        echo '</div>';
+                        echo '</div>';
+                        
+                        echo '</div>';
+                        echo '</div>';
+                        
+                        echo '</div>';
+                        
+                    } catch (Exception $e) {
+                        echo '<div class="wrap"><h1>Form Setup Guide</h1>';
+                        echo '<div class="notice notice-error"><p>Form setup guide error occurred. Please check error logs.</p></div>';
                         echo '</div>';
                     }
                 }
@@ -2669,6 +2931,182 @@ try {
         }
     }
     
+    // Dynamic thank you page function
+    function thrive_mautic_show_thank_you_page() {
+        try {
+            $thank_you_type = get_query_var('thank_you_type');
+            $utm_data = thrive_mautic_get_utm_from_session();
+            
+            // Get user data from session/cookie if available
+            $user_name = '';
+            $user_email = '';
+            $quiz_result = '';
+            $content_name = '';
+            
+            // Try to get data from session
+            if (isset($_SESSION['thrive_mautic_user_data'])) {
+                $user_data = $_SESSION['thrive_mautic_user_data'];
+                $user_name = $user_data['name'] ?? '';
+                $user_email = $user_data['email'] ?? '';
+                $quiz_result = $user_data['quiz_result'] ?? '';
+                $content_name = $user_data['content_name'] ?? '';
+            }
+            
+            // Thank you page content based on type
+            $page_content = thrive_mautic_get_thank_you_content($thank_you_type, $user_name, $quiz_result, $content_name, $utm_data);
+            
+            // Output the thank you page
+            get_header();
+            echo $page_content;
+            get_footer();
+            
+        } catch (Exception $e) {
+            // Fallback to default thank you page
+            get_header();
+            echo '<div class="container"><h1>Thank You!</h1><p>Your submission has been received.</p></div>';
+            get_footer();
+        }
+    }
+    
+    function thrive_mautic_get_thank_you_content($type, $name, $quiz_result, $content_name, $utm_data) {
+        $name_display = !empty($name) ? $name : 'there';
+        $utm_source = $utm_data['utm_source'] ?? '';
+        $utm_campaign = $utm_data['utm_campaign'] ?? '';
+        
+        switch ($type) {
+            case 'newsletter':
+                return '
+                <div class="container" style="max-width: 800px; margin: 50px auto; padding: 20px; text-align: center;">
+                    <div style="background: #f8f9fa; padding: 40px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                        <h1 style="color: #28a745; margin-bottom: 20px;">🎉 Welcome to Our Newsletter!</h1>
+                        <p style="font-size: 18px; margin-bottom: 30px;">Hi ' . esc_html($name_display) . ', thank you for subscribing!</p>
+                        <div style="background: #fff; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                            <h3>📧 What happens next?</h3>
+                            <ul style="text-align: left; max-width: 400px; margin: 0 auto;">
+                                <li>Check your email for confirmation</li>
+                                <li>Get our weekly SEO tips</li>
+                                <li>Access exclusive content</li>
+                                <li>Be the first to know about new tools</li>
+                            </ul>
+                        </div>
+                        <div style="margin: 30px 0;">
+                            <a href="/free-seo-tools" class="button button-primary" style="padding: 15px 30px; font-size: 16px; text-decoration: none; background: #007cba; color: white; border-radius: 5px;">Get Free SEO Tools</a>
+                        </div>
+                        <p style="color: #666; font-size: 14px;">Can\'t find the email? Check your spam folder.</p>
+                    </div>
+                </div>';
+                
+            case 'quiz':
+                $result_message = '';
+                $next_steps = '';
+                
+                if ($quiz_result === 'beginner') {
+                    $result_message = 'You\'re at the beginner level - perfect starting point!';
+                    $next_steps = 'Start with our SEO fundamentals course';
+                } elseif ($quiz_result === 'intermediate') {
+                    $result_message = 'You have intermediate SEO knowledge - great foundation!';
+                    $next_steps = 'Check out our advanced SEO strategies';
+                } elseif ($quiz_result === 'advanced') {
+                    $result_message = 'You\'re an SEO expert - impressive knowledge!';
+                    $next_steps = 'Explore our cutting-edge SEO tools';
+                }
+                
+                return '
+                <div class="container" style="max-width: 800px; margin: 50px auto; padding: 20px; text-align: center;">
+                    <div style="background: #f8f9fa; padding: 40px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                        <h1 style="color: #e83e8c; margin-bottom: 20px;">🧩 Quiz Complete!</h1>
+                        <p style="font-size: 18px; margin-bottom: 30px;">Hi ' . esc_html($name_display) . ', thanks for taking our SEO quiz!</p>
+                        <div style="background: #fff; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                            <h3>🎯 Your Results</h3>
+                            <p style="font-size: 16px; color: #333;">' . $result_message . '</p>
+                            <p style="font-size: 14px; color: #666;">Recommended next step: ' . $next_steps . '</p>
+                        </div>
+                        <div style="margin: 30px 0;">
+                            <a href="/personalized-seo-plan" class="button button-primary" style="padding: 15px 30px; font-size: 16px; text-decoration: none; background: #e83e8c; color: white; border-radius: 5px;">Get Personalized SEO Plan</a>
+                        </div>
+                        <p style="color: #666; font-size: 14px;">Detailed results sent to your email.</p>
+                    </div>
+                </div>';
+                
+            case 'lead-magnet':
+                return '
+                <div class="container" style="max-width: 800px; margin: 50px auto; padding: 20px; text-align: center;">
+                    <div style="background: #f8f9fa; padding: 40px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                        <h1 style="color: #20c997; margin-bottom: 20px;">📄 Download Ready!</h1>
+                        <p style="font-size: 18px; margin-bottom: 30px;">Hi ' . esc_html($name_display) . ', your content is ready!</p>
+                        <div style="background: #fff; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                            <h3>📚 What you get:</h3>
+                            <ul style="text-align: left; max-width: 400px; margin: 0 auto;">
+                                <li>Download link sent to your email</li>
+                                <li>Step-by-step implementation guide</li>
+                                <li>Bonus resources and templates</li>
+                                <li>Access to our private community</li>
+                            </ul>
+                        </div>
+                        <div style="margin: 30px 0;">
+                            <a href="/more-free-resources" class="button button-primary" style="padding: 15px 30px; font-size: 16px; text-decoration: none; background: #20c997; color: white; border-radius: 5px;">Get More Free Resources</a>
+                        </div>
+                        <p style="color: #666; font-size: 14px;">Check your email for the download link.</p>
+                    </div>
+                </div>';
+                
+            case 'contact':
+                return '
+                <div class="container" style="max-width: 800px; margin: 50px auto; padding: 20px; text-align: center;">
+                    <div style="background: #f8f9fa; padding: 40px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                        <h1 style="color: #007cba; margin-bottom: 20px;">💬 Message Received!</h1>
+                        <p style="font-size: 18px; margin-bottom: 30px;">Hi ' . esc_html($name_display) . ', thank you for reaching out!</p>
+                        <div style="background: #fff; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                            <h3>⏰ What happens next?</h3>
+                            <ul style="text-align: left; max-width: 400px; margin: 0 auto;">
+                                <li>We\'ll respond within 24 hours</li>
+                                <li>Check your email for our reply</li>
+                                <li>We may follow up with additional questions</li>
+                                <li>Keep an eye on your spam folder</li>
+                            </ul>
+                        </div>
+                        <div style="margin: 30px 0;">
+                            <a href="/blog" class="button button-primary" style="padding: 15px 30px; font-size: 16px; text-decoration: none; background: #007cba; color: white; border-radius: 5px;">Browse Our Blog</a>
+                        </div>
+                        <p style="color: #666; font-size: 14px;">In the meantime, check out our latest articles.</p>
+                    </div>
+                </div>';
+                
+            default:
+                return '
+                <div class="container" style="max-width: 800px; margin: 50px auto; padding: 20px; text-align: center;">
+                    <div style="background: #f8f9fa; padding: 40px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                        <h1 style="color: #28a745; margin-bottom: 20px;">✅ Thank You!</h1>
+                        <p style="font-size: 18px; margin-bottom: 30px;">Hi ' . esc_html($name_display) . ', your submission has been received!</p>
+                        <div style="background: #fff; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                            <h3>🎯 What happens next?</h3>
+                            <ul style="text-align: left; max-width: 400px; margin: 0 auto;">
+                                <li>We\'ll process your request</li>
+                                <li>Check your email for updates</li>
+                                <li>Access your exclusive content</li>
+                                <li>Join our community</li>
+                            </ul>
+                        </div>
+                        <div style="margin: 30px 0;">
+                            <a href="/" class="button button-primary" style="padding: 15px 30px; font-size: 16px; text-decoration: none; background: #28a745; color: white; border-radius: 5px;">Continue to Homepage</a>
+                        </div>
+                    </div>
+                </div>';
+        }
+    }
+    
+    function thrive_mautic_get_utm_from_session() {
+        try {
+            // Try to get UTM data from cookie
+            if (isset($_COOKIE['thrive_mautic_utm'])) {
+                return json_decode(stripslashes($_COOKIE['thrive_mautic_utm']), true);
+            }
+            return array();
+        } catch (Exception $e) {
+            return array();
+        }
+    }
+    
     // UTM Analytics functions
     function thrive_mautic_get_utm_stats() {
         try {
@@ -2770,6 +3208,9 @@ try {
             if (!wp_next_scheduled('thrive_mautic_sync_contacts')) {
                 wp_schedule_event(time(), 'every_15_minutes', 'thrive_mautic_sync_contacts');
             }
+            
+            // Flush rewrite rules for dynamic thank you pages
+            flush_rewrite_rules();
             
         } catch (Exception $e) {
             // Silent fail - don't crash
@@ -3407,6 +3848,25 @@ try {
     
     // Add UTM tracking to head
     add_action('wp_head', 'thrive_mautic_insert_utm_tracking');
+    
+    // Dynamic thank you page system
+    add_action('init', function() {
+        // Add rewrite rules for dynamic thank you pages
+        add_rewrite_rule('^thank-you/([^/]+)/?$', 'index.php?thrive_mautic_thank_you=1&thank_you_type=$matches[1]', 'top');
+    });
+    
+    add_filter('query_vars', function($vars) {
+        $vars[] = 'thrive_mautic_thank_you';
+        $vars[] = 'thank_you_type';
+        return $vars;
+    });
+    
+    add_action('template_redirect', function() {
+        if (get_query_var('thrive_mautic_thank_you')) {
+            thrive_mautic_show_thank_you_page();
+            exit;
+        }
+    });
     
     // Add tracking to footer (if position is set to footer)
     add_action('wp_footer', function() {
