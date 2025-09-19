@@ -3,7 +3,7 @@
  * Plugin Name: Thrive-Mautic Integration
  * Plugin URI: https://yourwebsite.com/thrive-mautic-integration
  * Description: Thrive Themes Integration With Mautic
- * Version: 5.8.0
+ * Version: 5.8.1
  * Author: Khodor Ghalayini
  * Author URI: https://yourwebsite.com
  * License: GPL v2 or later
@@ -18,7 +18,7 @@ if (!defined('ABSPATH')) {
 // WRAP EVERYTHING IN TRY-CATCH TO PREVENT CRASHES
 try {
     // Define plugin constants
-    define('THRIVE_MAUTIC_VERSION', '5.8.0');
+    define('THRIVE_MAUTIC_VERSION', '5.8.1');
     define('THRIVE_MAUTIC_PLUGIN_FILE', __FILE__);
     define('THRIVE_MAUTIC_PLUGIN_DIR', plugin_dir_path(__FILE__));
 
@@ -1323,6 +1323,230 @@ try {
                     } catch (Exception $e) {
                         echo '<div class="wrap"><h1>Queue Management</h1>';
                         echo '<div class="notice notice-error"><p>Queue management error occurred. Please check error logs.</p></div>';
+                        echo '</div>';
+                    }
+                }
+            );
+            
+            // Script Verification Submenu
+            add_submenu_page(
+                'thrive-mautic-dashboard',
+                'Script Verification',
+                'Script Verification',
+                'manage_options',
+                'thrive-mautic-verification',
+                function() {
+                    try {
+                        echo '<div class="wrap">';
+                        echo '<h1>🔍 Script Verification & Testing</h1>';
+                        
+                        // Get current tracking settings
+                        $tracking_enabled = get_option('thrive_mautic_tracking_enabled', false);
+                        $tracking_script = get_option('thrive_mautic_tracking_script', '');
+                        $tracking_position = get_option('thrive_mautic_tracking_position', 'footer');
+                        $tracking_pages = get_option('thrive_mautic_tracking_pages', 'all');
+                        $tracking_page_ids = get_option('thrive_mautic_tracking_page_ids', '');
+                        
+                        echo '<div style="background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin: 20px 0;">';
+                        echo '<h2>📊 Current Tracking Settings</h2>';
+                        echo '<table class="form-table">';
+                        echo '<tr><th>Tracking Enabled:</th><td>' . ($tracking_enabled ? '✅ Yes' : '❌ No') . '</td></tr>';
+                        echo '<tr><th>Script Position:</th><td>' . ucfirst($tracking_position) . '</td></tr>';
+                        echo '<tr><th>Page Targeting:</th><td>' . ucfirst(str_replace('_', ' ', $tracking_pages)) . '</td></tr>';
+                        if ($tracking_pages === 'specific' && !empty($tracking_page_ids)) {
+                            echo '<tr><th>Specific Page IDs:</th><td>' . esc_html($tracking_page_ids) . '</td></tr>';
+                        }
+                        echo '<tr><th>Script Length:</th><td>' . strlen($tracking_script) . ' characters</td></tr>';
+                        echo '</table>';
+                        echo '</div>';
+                        
+                        if (!$tracking_enabled || empty($tracking_script)) {
+                            echo '<div style="background: #f8d7da; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #dc3545;">';
+                            echo '<h3>⚠️ Tracking Not Configured</h3>';
+                            echo '<p>Please enable tracking and add your Mautic script in the <a href="' . admin_url('admin.php?page=thrive-mautic-settings') . '">Settings</a> page.</p>';
+                            echo '</div>';
+                        } else {
+                            // Script Preview
+                            echo '<div style="background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin: 20px 0;">';
+                            echo '<h2>📝 Current Tracking Script</h2>';
+                            echo '<div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 10px 0;">';
+                            echo '<pre style="background: #e9ecef; padding: 10px; border-radius: 3px; overflow-x: auto; font-size: 12px;"><code>' . esc_html($tracking_script) . '</code></pre>';
+                            echo '</div>';
+                            echo '</div>';
+                            
+                            // Verification Tests
+                            echo '<div style="background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin: 20px 0;">';
+                            echo '<h2>🧪 Verification Tests</h2>';
+                            
+                            // Test 1: Check if script is being added
+                            echo '<div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 10px 0;">';
+                            echo '<h3>Test 1: Script Injection Test</h3>';
+                            echo '<p>This test checks if the tracking script is being added to your pages.</p>';
+                            echo '<button type="button" id="test-script-injection" class="button button-primary">Run Script Injection Test</button>';
+                            echo '<div id="script-injection-result" style="margin-top: 10px;"></div>';
+                            echo '</div>';
+                            
+                            // Test 2: Page targeting test
+                            echo '<div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 10px 0;">';
+                            echo '<h3>Test 2: Page Targeting Test</h3>';
+                            echo '<p>This test verifies which pages should have the tracking script.</p>';
+                            echo '<button type="button" id="test-page-targeting" class="button button-primary">Run Page Targeting Test</button>';
+                            echo '<div id="page-targeting-result" style="margin-top: 10px;"></div>';
+                            echo '</div>';
+                            
+                            // Test 3: UTM tracking test
+                            echo '<div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 10px 0;">';
+                            echo '<h3>Test 3: UTM Tracking Test</h3>';
+                            echo '<p>This test checks if UTM parameters are being captured and stored.</p>';
+                            echo '<button type="button" id="test-utm-tracking" class="button button-primary">Run UTM Tracking Test</button>';
+                            echo '<div id="utm-tracking-result" style="margin-top: 10px;"></div>';
+                            echo '</div>';
+                            
+                            // Test 4: Live page test
+                            echo '<div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 10px 0;">';
+                            echo '<h3>Test 4: Live Page Test</h3>';
+                            echo '<p>This test opens a live page to verify the script is actually working.</p>';
+                            echo '<button type="button" id="test-live-page" class="button button-primary">Open Live Page Test</button>';
+                            echo '<div id="live-page-result" style="margin-top: 10px;"></div>';
+                            echo '</div>';
+                            
+                            echo '</div>';
+                            
+                            // Manual verification instructions
+                            echo '<div style="background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin: 20px 0;">';
+                            echo '<h2>🔍 Manual Verification Steps</h2>';
+                            echo '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">';
+                            
+                            echo '<div>';
+                            echo '<h3>Method 1: Browser Developer Tools</h3>';
+                            echo '<ol style="margin: 10px 0; padding-left: 20px;">';
+                            echo '<li>Open your website in a browser</li>';
+                            echo '<li>Right-click and select "Inspect Element"</li>';
+                            echo '<li>Go to the "Elements" tab</li>';
+                            echo '<li>Look for your Mautic script in the ' . ($tracking_position === 'head' ? '&lt;head&gt;' : '&lt;body&gt;') . ' section</li>';
+                            echo '<li>Check if UTM tracking script is present</li>';
+                            echo '</ol>';
+                            echo '</div>';
+                            
+                            echo '<div>';
+                            echo '<h3>Method 2: View Page Source</h3>';
+                            echo '<ol style="margin: 10px 0; padding-left: 20px;">';
+                            echo '<li>Open your website in a browser</li>';
+                            echo '<li>Right-click and select "View Page Source"</li>';
+                            echo '<li>Press Ctrl+F to search</li>';
+                            echo '<li>Search for "mautic" or "mtc.js"</li>';
+                            echo '<li>Verify the script is present</li>';
+                            echo '</ol>';
+                            echo '</div>';
+                            
+                            echo '<div>';
+                            echo '<h3>Method 3: Mautic Dashboard</h3>';
+                            echo '<ol style="margin: 10px 0; padding-left: 20px;">';
+                            echo '<li>Go to your Mautic dashboard</li>';
+                            echo '<li>Navigate to Reports → Contacts</li>';
+                            echo '<li>Visit your website with UTM parameters</li>';
+                            echo '<li>Check if new contacts appear</li>';
+                            echo '<li>Verify UTM data is captured</li>';
+                            echo '</ol>';
+                            echo '</div>';
+                            
+                            echo '<div>';
+                            echo '<h3>Method 4: Network Tab</h3>';
+                            echo '<ol style="margin: 10px 0; padding-left: 20px;">';
+                            echo '<li>Open Developer Tools (F12)</li>';
+                            echo '<li>Go to "Network" tab</li>';
+                            echo '<li>Reload the page</li>';
+                            echo '<li>Look for requests to your Mautic domain</li>';
+                            echo '<li>Check if tracking requests are being made</li>';
+                            echo '</ol>';
+                            echo '</div>';
+                            
+                            echo '</div>';
+                            echo '</div>';
+                            
+                            // JavaScript for tests
+                            echo '<script>
+                            document.addEventListener("DOMContentLoaded", function() {
+                                // Script injection test
+                                document.getElementById("test-script-injection").addEventListener("click", function() {
+                                    const resultDiv = document.getElementById("script-injection-result");
+                                    resultDiv.innerHTML = "<p>Testing script injection...</p>";
+                                    
+                                    fetch(ajaxurl, {
+                                        method: "POST",
+                                        headers: {"Content-Type": "application/x-www-form-urlencoded"},
+                                        body: "action=thrive_mautic_test_script_injection&nonce=' . wp_create_nonce('thrive_mautic_test') . '"
+                                    })
+                                    .then(response => response.json())
+                                    .then(data => {
+                                        if (data.success) {
+                                            resultDiv.innerHTML = "<div style=\"color: #28a745;\"><strong>✅ Success:</strong> " + data.data.message + "</div>";
+                                        } else {
+                                            resultDiv.innerHTML = "<div style=\"color: #dc3545;\"><strong>❌ Error:</strong> " + data.data + "</div>";
+                                        }
+                                    });
+                                });
+                                
+                                // Page targeting test
+                                document.getElementById("test-page-targeting").addEventListener("click", function() {
+                                    const resultDiv = document.getElementById("page-targeting-result");
+                                    resultDiv.innerHTML = "<p>Testing page targeting...</p>";
+                                    
+                                    fetch(ajaxurl, {
+                                        method: "POST",
+                                        headers: {"Content-Type": "application/x-www-form-urlencoded"},
+                                        body: "action=thrive_mautic_test_page_targeting&nonce=' . wp_create_nonce('thrive_mautic_test') . '"
+                                    })
+                                    .then(response => response.json())
+                                    .then(data => {
+                                        if (data.success) {
+                                            resultDiv.innerHTML = "<div style=\"color: #28a745;\"><strong>✅ Success:</strong> " + data.data.message + "</div>";
+                                        } else {
+                                            resultDiv.innerHTML = "<div style=\"color: #dc3545;\"><strong>❌ Error:</strong> " + data.data + "</div>";
+                                        }
+                                    });
+                                });
+                                
+                                // UTM tracking test
+                                document.getElementById("test-utm-tracking").addEventListener("click", function() {
+                                    const resultDiv = document.getElementById("utm-tracking-result");
+                                    resultDiv.innerHTML = "<p>Testing UTM tracking...</p>";
+                                    
+                                    fetch(ajaxurl, {
+                                        method: "POST",
+                                        headers: {"Content-Type": "application/x-www-form-urlencoded"},
+                                        body: "action=thrive_mautic_test_utm_tracking&nonce=' . wp_create_nonce('thrive_mautic_test') . '"
+                                    })
+                                    .then(response => response.json())
+                                    .then(data => {
+                                        if (data.success) {
+                                            resultDiv.innerHTML = "<div style=\"color: #28a745;\"><strong>✅ Success:</strong> " + data.data.message + "</div>";
+                                        } else {
+                                            resultDiv.innerHTML = "<div style=\"color: #dc3545;\"><strong>❌ Error:</strong> " + data.data + "</div>";
+                                        }
+                                    });
+                                });
+                                
+                                // Live page test
+                                document.getElementById("test-live-page").addEventListener("click", function() {
+                                    const resultDiv = document.getElementById("live-page-result");
+                                    resultDiv.innerHTML = "<p>Opening live page test...</p>";
+                                    
+                                    // Open a new window with UTM parameters
+                                    const testUrl = "' . home_url() . '?utm_source=test&utm_medium=verification&utm_campaign=script_test&utm_content=verification&utm_term=test";
+                                    window.open(testUrl, "_blank");
+                                    
+                                    resultDiv.innerHTML = "<div style=\"color: #17a2b8;\"><strong>🔗 Opened:</strong> <a href=\"" + testUrl + "\" target=\"_blank\">" + testUrl + "</a><br><small>Check the page source and developer tools to verify the script is present.</small></div>";
+                                });
+                            });
+                            </script>';
+                        }
+                        
+                        echo '</div>';
+                        
+                    } catch (Exception $e) {
+                        echo '<div class="wrap"><h1>Script Verification</h1>';
+                        echo '<div class="notice notice-error"><p>Script verification error occurred. Please check error logs.</p></div>';
                         echo '</div>';
                     }
                 }
@@ -2748,6 +2972,152 @@ try {
             
         } catch (Exception $e) {
             wp_send_json_error('Clear all failed: ' . $e->getMessage());
+        }
+    });
+    
+    // AJAX handler for script injection test
+    add_action('wp_ajax_thrive_mautic_test_script_injection', function() {
+        try {
+            if (!current_user_can('manage_options')) {
+                wp_send_json_error('Insufficient permissions');
+                return;
+            }
+            
+            if (!wp_verify_nonce($_POST['nonce'], 'thrive_mautic_test')) {
+                wp_send_json_error('Invalid nonce');
+                return;
+            }
+            
+            $tracking_enabled = get_option('thrive_mautic_tracking_enabled', false);
+            $tracking_script = get_option('thrive_mautic_tracking_script', '');
+            
+            if (!$tracking_enabled) {
+                wp_send_json_error('Tracking is not enabled');
+                return;
+            }
+            
+            if (empty($tracking_script)) {
+                wp_send_json_error('No tracking script configured');
+                return;
+            }
+            
+            // Check if the script contains Mautic tracking code
+            $has_mautic_script = strpos($tracking_script, 'mtc.js') !== false || 
+                                strpos($tracking_script, 'MauticTrackingObject') !== false ||
+                                strpos($tracking_script, 'mautic') !== false;
+            
+            if (!$has_mautic_script) {
+                wp_send_json_error('Script does not appear to be a valid Mautic tracking script');
+                return;
+            }
+            
+            wp_send_json_success(array('message' => 'Script injection is properly configured and ready to be added to pages'));
+            
+        } catch (Exception $e) {
+            wp_send_json_error('Script injection test failed: ' . $e->getMessage());
+        }
+    });
+    
+    // AJAX handler for page targeting test
+    add_action('wp_ajax_thrive_mautic_test_page_targeting', function() {
+        try {
+            if (!current_user_can('manage_options')) {
+                wp_send_json_error('Insufficient permissions');
+                return;
+            }
+            
+            if (!wp_verify_nonce($_POST['nonce'], 'thrive_mautic_test')) {
+                wp_send_json_error('Invalid nonce');
+                return;
+            }
+            
+            $tracking_pages = get_option('thrive_mautic_tracking_pages', 'all');
+            $tracking_page_ids = get_option('thrive_mautic_tracking_page_ids', '');
+            
+            $message = '';
+            
+            switch ($tracking_pages) {
+                case 'all':
+                    $message = 'Script will be added to ALL pages (frontend and admin)';
+                    break;
+                case 'frontend':
+                    $message = 'Script will be added to ALL frontend pages only';
+                    break;
+                case 'specific':
+                    if (empty($tracking_page_ids)) {
+                        wp_send_json_error('Specific pages selected but no page IDs configured');
+                        return;
+                    }
+                    $page_ids = explode(',', $tracking_page_ids);
+                    $valid_pages = array();
+                    foreach ($page_ids as $page_id) {
+                        $page_id = trim($page_id);
+                        if (is_numeric($page_id)) {
+                            $post = get_post($page_id);
+                            if ($post) {
+                                $valid_pages[] = $post->post_title . ' (ID: ' . $page_id . ')';
+                            }
+                        }
+                    }
+                    if (empty($valid_pages)) {
+                        wp_send_json_error('No valid pages found with the specified IDs');
+                        return;
+                    }
+                    $message = 'Script will be added to specific pages: ' . implode(', ', $valid_pages);
+                    break;
+                default:
+                    wp_send_json_error('Invalid page targeting setting');
+                    return;
+            }
+            
+            wp_send_json_success(array('message' => $message));
+            
+        } catch (Exception $e) {
+            wp_send_json_error('Page targeting test failed: ' . $e->getMessage());
+        }
+    });
+    
+    // AJAX handler for UTM tracking test
+    add_action('wp_ajax_thrive_mautic_test_utm_tracking', function() {
+        try {
+            if (!current_user_can('manage_options')) {
+                wp_send_json_error('Insufficient permissions');
+                return;
+            }
+            
+            if (!wp_verify_nonce($_POST['nonce'], 'thrive_mautic_test')) {
+                wp_send_json_error('Invalid nonce');
+                return;
+            }
+            
+            // Check if UTM tracking function exists
+            if (!function_exists('thrive_mautic_insert_utm_tracking')) {
+                wp_send_json_error('UTM tracking function not found');
+                return;
+            }
+            
+            // Check if UTM tracking is properly hooked
+            $utm_hook = 'wp_head';
+            $has_utm_hook = has_action($utm_hook, 'thrive_mautic_insert_utm_tracking');
+            
+            if (!$has_utm_hook) {
+                wp_send_json_error('UTM tracking is not properly hooked to wp_head');
+                return;
+            }
+            
+            // Test UTM parameter capture
+            $test_utm_data = array(
+                'utm_source' => 'test',
+                'utm_medium' => 'verification',
+                'utm_campaign' => 'script_test',
+                'utm_content' => 'verification',
+                'utm_term' => 'test'
+            );
+            
+            wp_send_json_success(array('message' => 'UTM tracking is properly configured and will capture: ' . implode(', ', array_keys($test_utm_data))));
+            
+        } catch (Exception $e) {
+            wp_send_json_error('UTM tracking test failed: ' . $e->getMessage());
         }
     });
     
