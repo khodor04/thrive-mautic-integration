@@ -3,7 +3,7 @@
  * Plugin Name: Thrive-Mautic Integration
  * Plugin URI: https://yourwebsite.com/thrive-mautic-integration
  * Description: Thrive Themes Integration With Mautic
- * Version: 5.7.9
+ * Version: 5.8.0
  * Author: Khodor Ghalayini
  * Author URI: https://yourwebsite.com
  * License: GPL v2 or later
@@ -18,7 +18,7 @@ if (!defined('ABSPATH')) {
 // WRAP EVERYTHING IN TRY-CATCH TO PREVENT CRASHES
 try {
     // Define plugin constants
-    define('THRIVE_MAUTIC_VERSION', '5.7.9');
+    define('THRIVE_MAUTIC_VERSION', '5.8.0');
     define('THRIVE_MAUTIC_PLUGIN_FILE', __FILE__);
     define('THRIVE_MAUTIC_PLUGIN_DIR', plugin_dir_path(__FILE__));
 
@@ -1073,6 +1073,261 @@ try {
                 }
             );
             
+            // Queue Management Submenu
+            add_submenu_page(
+                'thrive-mautic-dashboard',
+                'Queue Management',
+                'Queue Management',
+                'manage_options',
+                'thrive-mautic-queue',
+                function() {
+                    try {
+                        echo '<div class="wrap">';
+                        echo '<h1>🔄 Queue Management</h1>';
+                        
+                        // Queue Statistics
+                        global $wpdb;
+                        $table_name = $wpdb->prefix . 'thrive_mautic_submissions';
+                        
+                        $stats = $wpdb->get_results("
+                            SELECT 
+                                status,
+                                COUNT(*) as count,
+                                MAX(created_at) as last_created
+                            FROM $table_name 
+                            GROUP BY status
+                        ");
+                        
+                        echo '<div style="background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin: 20px 0;">';
+                        echo '<h2>📊 Queue Statistics</h2>';
+                        echo '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin: 20px 0;">';
+                        
+                        $total_pending = 0;
+                        $total_processing = 0;
+                        $total_completed = 0;
+                        $total_failed = 0;
+                        
+                        foreach ($stats as $stat) {
+                            $count = intval($stat->count);
+                            $last_created = $stat->last_created;
+                            
+                            switch ($stat->status) {
+                                case 'pending':
+                                    $total_pending = $count;
+                                    $color = '#ffc107';
+                                    $icon = '⏳';
+                                    break;
+                                case 'processing':
+                                    $total_processing = $count;
+                                    $color = '#17a2b8';
+                                    $icon = '🔄';
+                                    break;
+                                case 'completed':
+                                    $total_completed = $count;
+                                    $color = '#28a745';
+                                    $icon = '✅';
+                                    break;
+                                case 'failed':
+                                    $total_failed = $count;
+                                    $color = '#dc3545';
+                                    $icon = '❌';
+                                    break;
+                            }
+                            
+                            echo '<div style="background: ' . $color . '; color: white; padding: 20px; border-radius: 8px; text-align: center;">';
+                            echo '<h3 style="margin: 0; font-size: 24px;">' . $icon . ' ' . $count . '</h3>';
+                            echo '<p style="margin: 5px 0 0 0; text-transform: uppercase; font-weight: bold;">' . ucfirst($stat->status) . '</p>';
+                            if ($last_created) {
+                                echo '<p style="margin: 5px 0 0 0; font-size: 12px; opacity: 0.8;">Last: ' . human_time_diff(strtotime($last_created), current_time('timestamp')) . ' ago</p>';
+                            }
+                            echo '</div>';
+                        }
+                        
+                        echo '</div>';
+                        echo '</div>';
+                        
+                        // Queue Management Actions
+                        echo '<div style="background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin: 20px 0;">';
+                        echo '<h2>🛠️ Queue Management</h2>';
+                        echo '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">';
+                        
+                        echo '<div>';
+                        echo '<h3>📋 Queue Actions</h3>';
+                        echo '<div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 10px 0;">';
+                        echo '<button type="button" id="process-queue-now" class="button button-primary" style="margin: 5px;">Process Queue Now</button>';
+                        echo '<button type="button" id="retry-failed" class="button button-secondary" style="margin: 5px;">Retry Failed Submissions</button>';
+                        echo '<button type="button" id="clear-completed" class="button button-secondary" style="margin: 5px;">Clear Completed</button>';
+                        echo '<button type="button" id="clear-all" class="button button-secondary" style="margin: 5px; color: #dc3545;">Clear All</button>';
+                        echo '</div>';
+                        echo '</div>';
+                        
+                        echo '<div>';
+                        echo '<h3>ℹ️ How It Works</h3>';
+                        echo '<div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 10px 0;">';
+                        echo '<ul style="margin: 10px 0; padding-left: 20px;">';
+                        echo '<li><strong>Pending:</strong> Form submissions waiting to be sent to Mautic</li>';
+                        echo '<li><strong>Processing:</strong> Currently being sent to Mautic</li>';
+                        echo '<li><strong>Completed:</strong> Successfully sent to Mautic</li>';
+                        echo '<li><strong>Failed:</strong> Failed to send (will retry automatically)</li>';
+                        echo '</ul>';
+                        echo '<p style="margin: 10px 0; font-size: 14px; color: #666;">The queue processes automatically every 5 minutes, or you can process it manually.</p>';
+                        echo '</div>';
+                        echo '</div>';
+                        
+                        echo '</div>';
+                        echo '</div>';
+                        
+                        // Recent Submissions
+                        $recent = $wpdb->get_results("
+                            SELECT * FROM $table_name 
+                            ORDER BY created_at DESC 
+                            LIMIT 20
+                        ");
+                        
+                        if ($recent) {
+                            echo '<div style="background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin: 20px 0;">';
+                            echo '<h2>📝 Recent Submissions</h2>';
+                            echo '<table class="wp-list-table widefat fixed striped">';
+                            echo '<thead><tr>';
+                            echo '<th>ID</th><th>Email</th><th>Name</th><th>Form Type</th><th>Status</th><th>Created</th><th>Actions</th>';
+                            echo '</tr></thead><tbody>';
+                            
+                            foreach ($recent as $submission) {
+                                $status_color = '';
+                                $status_icon = '';
+                                switch ($submission->status) {
+                                    case 'pending':
+                                        $status_color = '#ffc107';
+                                        $status_icon = '⏳';
+                                        break;
+                                    case 'processing':
+                                        $status_color = '#17a2b8';
+                                        $status_icon = '🔄';
+                                        break;
+                                    case 'completed':
+                                        $status_color = '#28a745';
+                                        $status_icon = '✅';
+                                        break;
+                                    case 'failed':
+                                        $status_color = '#dc3545';
+                                        $status_icon = '❌';
+                                        break;
+                                }
+                                
+                                echo '<tr>';
+                                echo '<td>' . esc_html($submission->id) . '</td>';
+                                echo '<td>' . esc_html($submission->email) . '</td>';
+                                echo '<td>' . esc_html($submission->name) . '</td>';
+                                echo '<td>' . esc_html($submission->form_type) . '</td>';
+                                echo '<td><span style="color: ' . $status_color . '; font-weight: bold;">' . $status_icon . ' ' . ucfirst($submission->status) . '</span></td>';
+                                echo '<td>' . human_time_diff(strtotime($submission->created_at), current_time('timestamp')) . ' ago</td>';
+                                echo '<td>';
+                                if ($submission->status === 'failed') {
+                                    echo '<button type="button" class="button button-small retry-single" data-id="' . $submission->id . '">Retry</button>';
+                                }
+                                echo '</td>';
+                                echo '</tr>';
+                            }
+                            
+                            echo '</tbody></table>';
+                            echo '</div>';
+                        }
+                        
+                        // JavaScript for queue management
+                        echo '<script>
+                        document.addEventListener("DOMContentLoaded", function() {
+                            // Process queue now
+                            document.getElementById("process-queue-now").addEventListener("click", function() {
+                                if (confirm("Process all pending submissions now?")) {
+                                    fetch(ajaxurl, {
+                                        method: "POST",
+                                        headers: {"Content-Type": "application/x-www-form-urlencoded"},
+                                        body: "action=thrive_mautic_process_queue_manual&nonce=' . wp_create_nonce('thrive_mautic_process_queue') . '"
+                                    })
+                                    .then(response => response.json())
+                                    .then(data => {
+                                        if (data.success) {
+                                            alert("Queue processed! " + data.data.processed + " submissions processed.");
+                                            location.reload();
+                                        } else {
+                                            alert("Error: " + data.data);
+                                        }
+                                    });
+                                }
+                            });
+                            
+                            // Retry failed
+                            document.getElementById("retry-failed").addEventListener("click", function() {
+                                if (confirm("Retry all failed submissions?")) {
+                                    fetch(ajaxurl, {
+                                        method: "POST",
+                                        headers: {"Content-Type": "application/x-www-form-urlencoded"},
+                                        body: "action=thrive_mautic_retry_failed&nonce=' . wp_create_nonce('thrive_mautic_process_queue') . '"
+                                    })
+                                    .then(response => response.json())
+                                    .then(data => {
+                                        if (data.success) {
+                                            alert("Failed submissions retried! " + data.data.retried + " submissions retried.");
+                                            location.reload();
+                                        } else {
+                                            alert("Error: " + data.data);
+                                        }
+                                    });
+                                }
+                            });
+                            
+                            // Clear completed
+                            document.getElementById("clear-completed").addEventListener("click", function() {
+                                if (confirm("Clear all completed submissions? This cannot be undone.")) {
+                                    fetch(ajaxurl, {
+                                        method: "POST",
+                                        headers: {"Content-Type": "application/x-www-form-urlencoded"},
+                                        body: "action=thrive_mautic_clear_completed&nonce=' . wp_create_nonce('thrive_mautic_process_queue') . '"
+                                    })
+                                    .then(response => response.json())
+                                    .then(data => {
+                                        if (data.success) {
+                                            alert("Completed submissions cleared! " + data.data.cleared + " submissions cleared.");
+                                            location.reload();
+                                        } else {
+                                            alert("Error: " + data.data);
+                                        }
+                                    });
+                                }
+                            });
+                            
+                            // Clear all
+                            document.getElementById("clear-all").addEventListener("click", function() {
+                                if (confirm("Clear ALL submissions? This cannot be undone.")) {
+                                    fetch(ajaxurl, {
+                                        method: "POST",
+                                        headers: {"Content-Type": "application/x-www-form-urlencoded"},
+                                        body: "action=thrive_mautic_clear_all&nonce=' . wp_create_nonce('thrive_mautic_process_queue') . '"
+                                    })
+                                    .then(response => response.json())
+                                    .then(data => {
+                                        if (data.success) {
+                                            alert("All submissions cleared! " + data.data.cleared + " submissions cleared.");
+                                            location.reload();
+                                        } else {
+                                            alert("Error: " + data.data);
+                                        }
+                                    });
+                                }
+                            });
+                        });
+                        </script>';
+                        
+                        echo '</div>';
+                        
+                    } catch (Exception $e) {
+                        echo '<div class="wrap"><h1>Queue Management</h1>';
+                        echo '<div class="notice notice-error"><p>Queue management error occurred. Please check error logs.</p></div>';
+                        echo '</div>';
+                    }
+                }
+            );
+            
             // Workflow Guide Submenu
             add_submenu_page(
                 'thrive-mautic-dashboard',
@@ -1873,6 +2128,27 @@ try {
                         echo '<p class="submit">';
                         echo '<input type="submit" name="save_settings" class="button-primary" value="Save Settings">';
                         echo '<button type="button" id="test-connection" class="button" style="margin-left: 10px;">Test Mautic Connection</button>';
+                        echo '<div id="connection-status" style="margin-top: 10px;"></div>';
+                        
+                        // Troubleshooting section
+                        echo '<div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #007cba;">';
+                        echo '<h3>🔧 Connection Troubleshooting</h3>';
+                        echo '<p><strong>HTTP 401 Error?</strong> Check these common issues:</p>';
+                        echo '<ul style="margin: 10px 0; padding-left: 20px;">';
+                        echo '<li><strong>Username/Password:</strong> Make sure they are correct and match your Mautic login</li>';
+                        echo '<li><strong>API Access:</strong> Your Mautic user must have API access enabled</li>';
+                        echo '<li><strong>URL Format:</strong> Use full URL like <code>https://yourmautic.com</code> (not <code>yourmautic.com</code>)</li>';
+                        echo '<li><strong>SSL Certificate:</strong> Make sure your Mautic site has a valid SSL certificate</li>';
+                        echo '<li><strong>Firewall:</strong> Check if your server can access the Mautic API</li>';
+                        echo '</ul>';
+                        echo '<p><strong>To enable API access in Mautic:</strong></p>';
+                        echo '<ol style="margin: 10px 0; padding-left: 20px;">';
+                        echo '<li>Go to Mautic → Settings → Configuration</li>';
+                        echo '<li>Enable "API" under "System Settings"</li>';
+                        echo '<li>Go to Users → Edit your user</li>';
+                        echo '<li>Enable "API Access" permission</li>';
+                        echo '</ol>';
+                        echo '</div>';
                         echo '<button type="button" id="force-update-check" class="button" style="margin-left: 10px;">Force Update Check</button>';
                         echo '</p>';
                         
@@ -2319,12 +2595,14 @@ try {
             }
             
             $password = decrypt_password($encrypted_password);
+            // Test connection with better error handling
             $response = wp_remote_get($base_url . '/api/contacts?limit=1', array(
                 'headers' => array(
                     'Authorization' => 'Basic ' . base64_encode($username . ':' . $password),
-                    'User-Agent' => 'Thrive-Mautic-Plugin/' . THRIVE_MAUTIC_VERSION
+                    'User-Agent' => 'Thrive-Mautic-Plugin/' . THRIVE_MAUTIC_VERSION,
+                    'Content-Type' => 'application/json'
                 ),
-                'timeout' => 10,
+                'timeout' => 15,
                 'sslverify' => true
             ));
             
@@ -2332,10 +2610,25 @@ try {
                 wp_send_json_error('Connection failed: ' . $response->get_error_message());
             } else {
                 $response_code = wp_remote_retrieve_response_code($response);
+                $response_body = wp_remote_retrieve_body($response);
+                
                 if ($response_code === 200) {
                     wp_send_json_success('Connection successful! Mautic is reachable.');
+                } elseif ($response_code === 401) {
+                    // Specific 401 error handling
+                    $error_details = '';
+                    if (!empty($response_body)) {
+                        $error_data = json_decode($response_body, true);
+                        if (isset($error_data['errors'])) {
+                            $error_details = ' Details: ' . implode(', ', array_column($error_data['errors'], 'message'));
+                        }
+                    }
+                    wp_send_json_error('Authentication failed (HTTP 401). Please check your username and password.' . $error_details);
+                } elseif ($response_code === 403) {
+                    wp_send_json_error('Access forbidden (HTTP 403). Please check if your Mautic user has API access enabled.');
+                } elseif ($response_code === 404) {
+                    wp_send_json_error('API endpoint not found (HTTP 404). Please check your Mautic URL. Make sure it includes the full URL (e.g., https://yourmautic.com).');
                 } else {
-                    $response_body = wp_remote_retrieve_body($response);
                     wp_send_json_error('Connection failed (HTTP ' . $response_code . '). Response: ' . substr($response_body, 0, 200));
                 }
             }
@@ -2343,6 +2636,185 @@ try {
             wp_send_json_error('Connection test failed: ' . $e->getMessage());
         }
     });
+    
+    // AJAX handler for manual queue processing
+    add_action('wp_ajax_thrive_mautic_process_queue_manual', function() {
+        try {
+            if (!current_user_can('manage_options')) {
+                wp_send_json_error('Insufficient permissions');
+                return;
+            }
+            
+            if (!wp_verify_nonce($_POST['nonce'], 'thrive_mautic_process_queue')) {
+                wp_send_json_error('Invalid nonce');
+                return;
+            }
+            
+            // Process the queue
+            thrive_mautic_process_pending_submissions();
+            
+            // Get count of processed submissions
+            global $wpdb;
+            $table_name = $wpdb->prefix . 'thrive_mautic_submissions';
+            $processed = $wpdb->get_var("SELECT COUNT(*) FROM $table_name WHERE status = 'completed'");
+            
+            wp_send_json_success(array('processed' => $processed));
+            
+        } catch (Exception $e) {
+            wp_send_json_error('Queue processing failed: ' . $e->getMessage());
+        }
+    });
+    
+    // AJAX handler for retrying failed submissions
+    add_action('wp_ajax_thrive_mautic_retry_failed', function() {
+        try {
+            if (!current_user_can('manage_options')) {
+                wp_send_json_error('Insufficient permissions');
+                return;
+            }
+            
+            if (!wp_verify_nonce($_POST['nonce'], 'thrive_mautic_process_queue')) {
+                wp_send_json_error('Invalid nonce');
+                return;
+            }
+            
+            global $wpdb;
+            $table_name = $wpdb->prefix . 'thrive_mautic_submissions';
+            
+            // Reset failed submissions to pending
+            $retried = $wpdb->update(
+                $table_name,
+                array('status' => 'pending'),
+                array('status' => 'failed')
+            );
+            
+            // Process the queue
+            thrive_mautic_process_pending_submissions();
+            
+            wp_send_json_success(array('retried' => $retried));
+            
+        } catch (Exception $e) {
+            wp_send_json_error('Retry failed: ' . $e->getMessage());
+        }
+    });
+    
+    // AJAX handler for clearing completed submissions
+    add_action('wp_ajax_thrive_mautic_clear_completed', function() {
+        try {
+            if (!current_user_can('manage_options')) {
+                wp_send_json_error('Insufficient permissions');
+                return;
+            }
+            
+            if (!wp_verify_nonce($_POST['nonce'], 'thrive_mautic_process_queue')) {
+                wp_send_json_error('Invalid nonce');
+                return;
+            }
+            
+            global $wpdb;
+            $table_name = $wpdb->prefix . 'thrive_mautic_submissions';
+            
+            $cleared = $wpdb->delete(
+                $table_name,
+                array('status' => 'completed')
+            );
+            
+            wp_send_json_success(array('cleared' => $cleared));
+            
+        } catch (Exception $e) {
+            wp_send_json_error('Clear failed: ' . $e->getMessage());
+        }
+    });
+    
+    // AJAX handler for clearing all submissions
+    add_action('wp_ajax_thrive_mautic_clear_all', function() {
+        try {
+            if (!current_user_can('manage_options')) {
+                wp_send_json_error('Insufficient permissions');
+                return;
+            }
+            
+            if (!wp_verify_nonce($_POST['nonce'], 'thrive_mautic_process_queue')) {
+                wp_send_json_error('Invalid nonce');
+                return;
+            }
+            
+            global $wpdb;
+            $table_name = $wpdb->prefix . 'thrive_mautic_submissions';
+            
+            $cleared = $wpdb->query("DELETE FROM $table_name");
+            
+            wp_send_json_success(array('cleared' => $cleared));
+            
+        } catch (Exception $e) {
+            wp_send_json_error('Clear all failed: ' . $e->getMessage());
+        }
+    });
+    
+    // Manual connection test function for debugging
+    function thrive_mautic_debug_connection() {
+        try {
+            $base_url = get_option('thrive_mautic_base_url', '');
+            $username = get_option('thrive_mautic_username', '');
+            $encrypted_password = get_option('thrive_mautic_password', '');
+            
+            if (empty($base_url) || empty($username) || empty($encrypted_password)) {
+                return 'Missing credentials. Please configure Mautic settings first.';
+            }
+            
+            $password = decrypt_password($encrypted_password);
+            
+            // Test 1: Basic connectivity
+            $test_url = $base_url . '/api/contacts?limit=1';
+            $response = wp_remote_get($test_url, array(
+                'headers' => array(
+                    'Authorization' => 'Basic ' . base64_encode($username . ':' . $password),
+                    'User-Agent' => 'Thrive-Mautic-Plugin/' . THRIVE_MAUTIC_VERSION,
+                    'Content-Type' => 'application/json'
+                ),
+                'timeout' => 15,
+                'sslverify' => true
+            ));
+            
+            $debug_info = "=== MAUTIC CONNECTION DEBUG ===\n";
+            $debug_info .= "URL: " . $test_url . "\n";
+            $debug_info .= "Username: " . $username . "\n";
+            $debug_info .= "Password: " . (empty($password) ? 'EMPTY' : 'SET') . "\n\n";
+            
+            if (is_wp_error($response)) {
+                $debug_info .= "ERROR: " . $response->get_error_message() . "\n";
+                $debug_info .= "Error Code: " . $response->get_error_code() . "\n";
+            } else {
+                $response_code = wp_remote_retrieve_response_code($response);
+                $response_body = wp_remote_retrieve_body($response);
+                $response_headers = wp_remote_retrieve_headers($response);
+                
+                $debug_info .= "Response Code: " . $response_code . "\n";
+                $debug_info .= "Response Headers: " . print_r($response_headers, true) . "\n";
+                $debug_info .= "Response Body: " . substr($response_body, 0, 500) . "\n\n";
+                
+                if ($response_code === 401) {
+                    $debug_info .= "=== 401 AUTHENTICATION ERROR ===\n";
+                    $debug_info .= "This means your username/password are incorrect or API access is disabled.\n";
+                    $debug_info .= "Check:\n";
+                    $debug_info .= "1. Username and password match your Mautic login\n";
+                    $debug_info .= "2. API is enabled in Mautic settings\n";
+                    $debug_info .= "3. Your user has API access permission\n";
+                } elseif ($response_code === 403) {
+                    $debug_info .= "=== 403 FORBIDDEN ERROR ===\n";
+                    $debug_info .= "Your user doesn't have API access permission.\n";
+                } elseif ($response_code === 404) {
+                    $debug_info .= "=== 404 NOT FOUND ERROR ===\n";
+                    $debug_info .= "The API endpoint doesn't exist. Check your Mautic URL.\n";
+                }
+            }
+            
+            return $debug_info;
+            
+        } catch (Exception $e) {
+            return "Debug failed: " . $e->getMessage();
+        }
+    }
 
     // Database functions
     function create_thrive_mautic_tables() {
