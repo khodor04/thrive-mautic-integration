@@ -3,7 +3,7 @@
  * Plugin Name: Thrive-Mautic Integration
  * Plugin URI: https://yourwebsite.com/thrive-mautic-integration
  * Description: Thrive Themes Integration With Mautic
- * Version: 5.8.1
+ * Version: 5.8.2
  * Author: Khodor Ghalayini
  * Author URI: https://yourwebsite.com
  * License: GPL v2 or later
@@ -18,7 +18,7 @@ if (!defined('ABSPATH')) {
 // WRAP EVERYTHING IN TRY-CATCH TO PREVENT CRASHES
 try {
     // Define plugin constants
-    define('THRIVE_MAUTIC_VERSION', '5.8.1');
+    define('THRIVE_MAUTIC_VERSION', '5.8.2');
     define('THRIVE_MAUTIC_PLUGIN_FILE', __FILE__);
     define('THRIVE_MAUTIC_PLUGIN_DIR', plugin_dir_path(__FILE__));
 
@@ -1342,7 +1342,7 @@ try {
                         
                         // Get current tracking settings
                         $tracking_enabled = get_option('thrive_mautic_tracking_enabled', false);
-                        $tracking_script = get_option('thrive_mautic_tracking_script', '');
+                        $tracking_script = get_option('thrive_mautic_custom_tracking_script', '');
                         $tracking_position = get_option('thrive_mautic_tracking_position', 'footer');
                         $tracking_pages = get_option('thrive_mautic_tracking_pages', 'all');
                         $tracking_page_ids = get_option('thrive_mautic_tracking_page_ids', '');
@@ -2989,7 +2989,7 @@ try {
             }
             
             $tracking_enabled = get_option('thrive_mautic_tracking_enabled', false);
-            $tracking_script = get_option('thrive_mautic_tracking_script', '');
+            $tracking_script = get_option('thrive_mautic_custom_tracking_script', '');
             
             if (!$tracking_enabled) {
                 wp_send_json_error('Tracking is not enabled');
@@ -4054,10 +4054,117 @@ try {
             // Flush rewrite rules for dynamic thank you pages
             flush_rewrite_rules();
             
+            // Migrate settings if needed
+            thrive_mautic_migrate_settings();
+            
         } catch (Exception $e) {
             // Silent fail - don't crash
         }
     });
+    
+    // Settings migration function
+    function thrive_mautic_migrate_settings() {
+        try {
+            // Check if we need to migrate settings
+            $current_version = get_option('thrive_mautic_version', '0.0.0');
+            $plugin_version = THRIVE_MAUTIC_VERSION;
+            
+            if (version_compare($current_version, $plugin_version, '<')) {
+                // Backup current settings before migration
+                thrive_mautic_backup_settings();
+                
+                // Migrate old settings to new format if needed
+                $old_username = get_option('thrive_mautic_username_old', '');
+                $old_password = get_option('thrive_mautic_password_old', '');
+                $old_url = get_option('thrive_mautic_base_url_old', '');
+                
+                if (!empty($old_username) && empty(get_option('thrive_mautic_username', ''))) {
+                    update_option('thrive_mautic_username', $old_username);
+                }
+                
+                if (!empty($old_password) && empty(get_option('thrive_mautic_password', ''))) {
+                    update_option('thrive_mautic_password', $old_password);
+                }
+                
+                if (!empty($old_url) && empty(get_option('thrive_mautic_base_url', ''))) {
+                    update_option('thrive_mautic_base_url', $old_url);
+                }
+                
+                // Update version
+                update_option('thrive_mautic_version', $plugin_version);
+                
+                // Log migration
+                thrive_mautic_log('info', 'Settings migrated from version ' . $current_version . ' to ' . $plugin_version);
+            }
+            
+        } catch (Exception $e) {
+            thrive_mautic_log('error', 'Settings migration failed: ' . $e->getMessage());
+        }
+    }
+    
+    // Settings backup function
+    function thrive_mautic_backup_settings() {
+        try {
+            // Backup critical settings
+            $settings_to_backup = array(
+                'thrive_mautic_username',
+                'thrive_mautic_password',
+                'thrive_mautic_base_url',
+                'thrive_mautic_tracking_enabled',
+                'thrive_mautic_custom_tracking_script',
+                'thrive_mautic_tracking_position',
+                'thrive_mautic_tracking_pages',
+                'thrive_mautic_tracking_page_ids',
+                'thrive_mautic_auto_update'
+            );
+            
+            foreach ($settings_to_backup as $setting) {
+                $value = get_option($setting, '');
+                if (!empty($value)) {
+                    update_option($setting . '_backup', $value);
+                }
+            }
+            
+            // Log backup
+            thrive_mautic_log('info', 'Settings backed up before migration');
+            
+        } catch (Exception $e) {
+            thrive_mautic_log('error', 'Settings backup failed: ' . $e->getMessage());
+        }
+    }
+    
+    // Settings restore function
+    function thrive_mautic_restore_settings() {
+        try {
+            // Restore critical settings from backup
+            $settings_to_restore = array(
+                'thrive_mautic_username',
+                'thrive_mautic_password',
+                'thrive_mautic_base_url',
+                'thrive_mautic_tracking_enabled',
+                'thrive_mautic_custom_tracking_script',
+                'thrive_mautic_tracking_position',
+                'thrive_mautic_tracking_pages',
+                'thrive_mautic_tracking_page_ids',
+                'thrive_mautic_auto_update'
+            );
+            
+            foreach ($settings_to_restore as $setting) {
+                $backup_value = get_option($setting . '_backup', '');
+                $current_value = get_option($setting, '');
+                
+                if (!empty($backup_value) && empty($current_value)) {
+                    update_option($setting, $backup_value);
+                }
+            }
+            
+            // Log restore
+            thrive_mautic_log('info', 'Settings restored from backup');
+            
+        } catch (Exception $e) {
+            thrive_mautic_log('error', 'Settings restore failed: ' . $e->getMessage());
+        }
+    }
 
     // Mautic API functions
     function thrive_mautic_create_contact($email, $name = '', $phone = '', $company = '') {
