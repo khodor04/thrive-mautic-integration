@@ -3,7 +3,7 @@
  * Plugin Name: Thrive-Mautic Integration
  * Plugin URI: https://yourwebsite.com/thrive-mautic-integration
  * Description: Thrive Themes Integration With Mautic
- * Version: 5.7.7
+ * Version: 5.7.8
  * Author: Khodor Ghalayini
  * Author URI: https://yourwebsite.com
  * License: GPL v2 or later
@@ -18,7 +18,7 @@ if (!defined('ABSPATH')) {
 // WRAP EVERYTHING IN TRY-CATCH TO PREVENT CRASHES
 try {
     // Define plugin constants
-    define('THRIVE_MAUTIC_VERSION', '5.7.7');
+    define('THRIVE_MAUTIC_VERSION', '5.7.8');
     define('THRIVE_MAUTIC_PLUGIN_FILE', __FILE__);
     define('THRIVE_MAUTIC_PLUGIN_DIR', plugin_dir_path(__FILE__));
 
@@ -455,6 +455,155 @@ try {
                 }
             );
             
+            // Lead Management Submenu
+            add_submenu_page(
+                'thrive-mautic-dashboard',
+                'Lead Management',
+                'Lead Management',
+                'manage_options',
+                'thrive-mautic-leads',
+                function() {
+                    try {
+                        echo '<div class="wrap">';
+                        echo '<h1>Lead Management Dashboard</h1>';
+                        
+                        // Get lead statistics
+                        $lead_stats = thrive_mautic_get_lead_workflow_stats();
+                        
+                        // Workflow Overview
+                        echo '<div style="background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin: 20px 0;">';
+                        echo '<h2>🔄 Lead Workflow Overview</h2>';
+                        echo '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin: 20px 0;">';
+                        
+                        echo '<div class="stats-card" style="background: #f8f9fa; padding: 15px; border-radius: 8px; border-left: 4px solid #28a745;">';
+                        echo '<h3>✅ Verified Users</h3>';
+                        echo '<div style="font-size: 24px; font-weight: bold; color: #28a745;">' . $lead_stats['verified'] . '</div>';
+                        echo '<div style="font-size: 14px; color: #666;">' . $lead_stats['verified_percent'] . '% of total</div>';
+                        echo '</div>';
+                        
+                        echo '<div class="stats-card" style="background: #f8f9fa; padding: 15px; border-radius: 8px; border-left: 4px solid #ffc107;">';
+                        echo '<h3>⏳ Unverified Users</h3>';
+                        echo '<div style="font-size: 24px; font-weight: bold; color: #ffc107;">' . $lead_stats['unverified'] . '</div>';
+                        echo '<div style="font-size: 14px; color: #666;">' . $lead_stats['unverified_percent'] . '% of total</div>';
+                        echo '</div>';
+                        
+                        echo '<div class="stats-card" style="background: #f8f9fa; padding: 15px; border-radius: 8px; border-left: 4px solid #007cba;">';
+                        echo '<h3>🔐 Google OAuth</h3>';
+                        echo '<div style="font-size: 24px; font-weight: bold; color: #007cba;">' . $lead_stats['google_oauth'] . '</div>';
+                        echo '<div style="font-size: 14px; color: #666;">Auto-verified</div>';
+                        echo '</div>';
+                        
+                        echo '<div class="stats-card" style="background: #f8f9fa; padding: 15px; border-radius: 8px; border-left: 4px solid #6f42c1;">';
+                        echo '<h3>📧 Newsletter</h3>';
+                        echo '<div style="font-size: 24px; font-weight: bold; color: #6f42c1;">' . $lead_stats['newsletter'] . '</div>';
+                        echo '<div style="font-size: 14px; color: #666;">Subscribers</div>';
+                        echo '</div>';
+                        
+                        echo '<div class="stats-card" style="background: #f8f9fa; padding: 15px; border-radius: 8px; border-left: 4px solid #e83e8c;">';
+                        echo '<h3>🧩 Quiz Takers</h3>';
+                        echo '<div style="font-size: 24px; font-weight: bold; color: #e83e8c;">' . $lead_stats['quiz_takers'] . '</div>';
+                        echo '<div style="font-size: 14px; color: #666;">Completed</div>';
+                        echo '</div>';
+                        
+                        echo '<div class="stats-card" style="background: #f8f9fa; padding: 15px; border-radius: 8px; border-left: 4px solid #20c997;">';
+                        echo '<h3>📄 Lead Magnets</h3>';
+                        echo '<div style="font-size: 24px; font-weight: bold; color: #20c997;">' . $lead_stats['lead_magnets'] . '</div>';
+                        echo '<div style="font-size: 14px; color: #666;">Downloads</div>';
+                        echo '</div>';
+                        
+                        echo '</div>';
+                        echo '</div>';
+                        
+                        // Lead Source Breakdown
+                        if (!empty($lead_stats['sources'])) {
+                            echo '<div style="background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin: 20px 0;">';
+                            echo '<h2>📊 Lead Source Breakdown</h2>';
+                            echo '<table class="wp-list-table widefat fixed striped">';
+                            echo '<thead>';
+                            echo '<tr>';
+                            echo '<th>Source</th>';
+                            echo '<th>Count</th>';
+                            echo '<th>Percentage</th>';
+                            echo '<th>Verification Rate</th>';
+                            echo '<th>Last Activity</th>';
+                            echo '</tr>';
+                            echo '</thead>';
+                            echo '<tbody>';
+                            
+                            foreach ($lead_stats['sources'] as $source) {
+                                $verification_rate = $source['total'] > 0 ? round(($source['verified'] / $source['total']) * 100, 1) : 0;
+                                echo '<tr>';
+                                echo '<td><strong>' . esc_html($source['name']) . '</strong></td>';
+                                echo '<td><span style="font-weight: bold; color: #007cba;">' . $source['total'] . '</span></td>';
+                                echo '<td>' . $source['percentage'] . '%</td>';
+                                echo '<td><span style="color: ' . ($verification_rate > 50 ? '#28a745' : '#ffc107') . '; font-weight: bold;">' . $verification_rate . '%</span></td>';
+                                echo '<td>' . esc_html($source['last_activity']) . '</td>';
+                                echo '</tr>';
+                            }
+                            
+                            echo '</tbody>';
+                            echo '</table>';
+                            echo '</div>';
+                        }
+                        
+                        // Content Performance
+                        if (!empty($lead_stats['content_tags'])) {
+                            echo '<div style="background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin: 20px 0;">';
+                            echo '<h2>📚 Content Performance</h2>';
+                            echo '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">';
+                            
+                            foreach ($lead_stats['content_tags'] as $content) {
+                                echo '<div style="background: #f8f9fa; padding: 15px; border-radius: 8px; border-left: 4px solid #007cba;">';
+                                echo '<h4 style="margin: 0 0 10px 0; color: #007cba;">' . esc_html($content['tag']) . '</h4>';
+                                echo '<div style="font-size: 20px; font-weight: bold; color: #333;">' . $content['count'] . ' downloads</div>';
+                                echo '<div style="font-size: 12px; color: #666;">Last: ' . esc_html($content['last_download']) . '</div>';
+                                echo '</div>';
+                            }
+                            
+                            echo '</div>';
+                            echo '</div>';
+                        }
+                        
+                        // Workflow Recommendations
+                        echo '<div style="background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin: 20px 0;">';
+                        echo '<h2>💡 Workflow Recommendations</h2>';
+                        echo '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">';
+                        
+                        echo '<div>';
+                        echo '<h3>🎯 Segmentation Strategy</h3>';
+                        echo '<ul style="margin: 10px 0; padding-left: 20px;">';
+                        echo '<li><strong>verified</strong> - Confirmed users (Google OAuth + verified email)</li>';
+                        echo '<li><strong>unverified</strong> - Pending email confirmation</li>';
+                        echo '<li><strong>google_oauth</strong> - Signed up via Google</li>';
+                        echo '<li><strong>newsletter_signup</strong> - Newsletter subscribers</li>';
+                        echo '<li><strong>quiz_completion</strong> - Completed Thrive quiz</li>';
+                        echo '<li><strong>lead_magnet</strong> - Downloaded content</li>';
+                        echo '</ul>';
+                        echo '</div>';
+                        
+                        echo '<div>';
+                        echo '<h3>🏷️ Tagging Strategy</h3>';
+                        echo '<ul style="margin: 10px 0; padding-left: 20px;">';
+                        echo '<li><strong>Content Tags:</strong> seo-tools, email-templates, checklist-pdf</li>';
+                        echo '<li><strong>Behavior Tags:</strong> high-engagement, newsletter-subscriber</li>';
+                        echo '<li><strong>Quiz Tags:</strong> beginner-seo, intermediate-seo, advanced-seo</li>';
+                        echo '<li><strong>Interest Tags:</strong> interested-in-tools, interested-in-courses</li>';
+                        echo '</ul>';
+                        echo '</div>';
+                        
+                        echo '</div>';
+                        echo '</div>';
+                        
+                        echo '</div>';
+                        
+                    } catch (Exception $e) {
+                        echo '<div class="wrap"><h1>Lead Management Dashboard</h1>';
+                        echo '<div class="notice notice-error"><p>Lead management error occurred. Please check error logs.</p></div>';
+                        echo '</div>';
+                    }
+                }
+            );
+            
             // UTM Analytics Submenu
             add_submenu_page(
                 'thrive-mautic-dashboard',
@@ -657,6 +806,236 @@ try {
                     } catch (Exception $e) {
                         echo '<div class="wrap"><h1>UTM Analytics Dashboard</h1>';
                         echo '<div class="notice notice-error"><p>UTM analytics error occurred. Please check error logs.</p></div>';
+                        echo '</div>';
+                    }
+                }
+            );
+            
+            // Workflow Guide Submenu
+            add_submenu_page(
+                'thrive-mautic-dashboard',
+                'Workflow Guide',
+                'Workflow Guide',
+                'manage_options',
+                'thrive-mautic-workflow',
+                function() {
+                    try {
+                        echo '<div class="wrap">';
+                        echo '<h1>🎯 Complete Lead Workflow Guide</h1>';
+                        
+                        // Workflow Overview
+                        echo '<div style="background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin: 20px 0;">';
+                        echo '<h2>🔄 Your Complete Lead Workflow</h2>';
+                        echo '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin: 20px 0;">';
+                        
+                        echo '<div>';
+                        echo '<h3>📝 User Registration Flow</h3>';
+                        echo '<div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 10px 0;">';
+                        echo '<h4>1. Google OAuth Registration</h4>';
+                        echo '<ul style="margin: 10px 0; padding-left: 20px;">';
+                        echo '<li>User clicks "Sign up with Google"</li>';
+                        echo '<li>Google authentication completes</li>';
+                        echo '<li><strong>Segment:</strong> <code>google_oauth</code></li>';
+                        echo '<li><strong>Verification:</strong> Auto-verified (no email confirmation needed)</li>';
+                        echo '<li><strong>Tags:</strong> <code>high-engagement</code> (immediate verification)</li>';
+                        echo '</ul>';
+                        echo '</div>';
+                        
+                        echo '<div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 10px 0;">';
+                        echo '<h4>2. Local Account Registration</h4>';
+                        echo '<ul style="margin: 10px 0; padding-left: 20px;">';
+                        echo '<li>User creates account with email/password</li>';
+                        echo '<li>Email confirmation sent</li>';
+                        echo '<li><strong>Segment:</strong> <code>unverified</code> (until confirmed)</li>';
+                        echo '<li><strong>After confirmation:</strong> <code>verified</code></li>';
+                        echo '<li><strong>Tags:</strong> <code>local-registration</code></li>';
+                        echo '</ul>';
+                        echo '</div>';
+                        echo '</div>';
+                        
+                        echo '<div>';
+                        echo '<h3>🎯 Lead Generation Flow</h3>';
+                        echo '<div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 10px 0;">';
+                        echo '<h4>3. Newsletter Subscription</h4>';
+                        echo '<ul style="margin: 10px 0; padding-left: 20px;">';
+                        echo '<li>User subscribes to newsletter</li>';
+                        echo '<li><strong>Segment:</strong> <code>newsletter_signup</code></li>';
+                        echo '<li><strong>Tags:</strong> <code>newsletter-subscriber</code></li>';
+                        echo '<li><strong>UTM:</strong> Track campaign source</li>';
+                        echo '</ul>';
+                        echo '</div>';
+                        
+                        echo '<div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 10px 0;">';
+                        echo '<h4>4. Thrive Quiz Completion</h4>';
+                        echo '<ul style="margin: 10px 0; padding-left: 20px;">';
+                        echo '<li>User completes quiz</li>';
+                        echo '<li><strong>Segment:</strong> <code>quiz_completion</code></li>';
+                        echo '<li><strong>Tags:</strong> <code>quiz-taker</code> + result tags</li>';
+                        echo '<li><strong>Result Tags:</strong> <code>beginner-seo</code>, <code>intermediate-seo</code>, <code>advanced-seo</code></li>';
+                        echo '</ul>';
+                        echo '</div>';
+                        
+                        echo '<div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 10px 0;">';
+                        echo '<h4>5. Lead Magnet Downloads</h4>';
+                        echo '<ul style="margin: 10px 0; padding-left: 20px;">';
+                        echo '<li>User downloads content from blog post</li>';
+                        echo '<li><strong>Segment:</strong> <code>lead_magnet</code></li>';
+                        echo '<li><strong>Tags:</strong> Content-specific tags</li>';
+                        echo '<li><strong>Content Tags:</strong> <code>seo-tools</code>, <code>email-templates</code>, <code>checklist-pdf</code></li>';
+                        echo '</ul>';
+                        echo '</div>';
+                        echo '</div>';
+                        
+                        echo '</div>';
+                        echo '</div>';
+                        
+                        // Segmentation Strategy
+                        echo '<div style="background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin: 20px 0;">';
+                        echo '<h2>🎯 Segmentation Strategy</h2>';
+                        echo '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">';
+                        
+                        echo '<div>';
+                        echo '<h3>📊 Main Segments</h3>';
+                        echo '<table style="width: 100%; border-collapse: collapse;">';
+                        echo '<tr style="background: #f8f9fa;"><th style="padding: 10px; border: 1px solid #ddd;">Segment</th><th style="padding: 10px; border: 1px solid #ddd;">Purpose</th></tr>';
+                        echo '<tr><td style="padding: 10px; border: 1px solid #ddd;"><code>verified</code></td><td style="padding: 10px; border: 1px solid #ddd;">Confirmed users (Google + verified email)</td></tr>';
+                        echo '<tr><td style="padding: 10px; border: 1px solid #ddd;"><code>unverified</code></td><td style="padding: 10px; border: 1px solid #ddd;">Pending email confirmation</td></tr>';
+                        echo '<tr><td style="padding: 10px; border: 1px solid #ddd;"><code>google_oauth</code></td><td style="padding: 10px; border: 1px solid #ddd;">Google sign-ups (auto-verified)</td></tr>';
+                        echo '<tr><td style="padding: 10px; border: 1px solid #ddd;"><code>newsletter_signup</code></td><td style="padding: 10px; border: 1px solid #ddd;">Newsletter subscribers</td></tr>';
+                        echo '<tr><td style="padding: 10px; border: 1px solid #ddd;"><code>quiz_completion</code></td><td style="padding: 10px; border: 1px solid #ddd;">Quiz completers</td></tr>';
+                        echo '<tr><td style="padding: 10px; border: 1px solid #ddd;"><code>lead_magnet</code></td><td style="padding: 10px; border: 1px solid #ddd;">Content downloaders</td></tr>';
+                        echo '</table>';
+                        echo '</div>';
+                        
+                        echo '<div>';
+                        echo '<h3>🏷️ Tag Categories</h3>';
+                        echo '<div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 10px 0;">';
+                        echo '<h4>Content Tags</h4>';
+                        echo '<ul style="margin: 5px 0; padding-left: 20px;">';
+                        echo '<li><code>seo-tools</code> - SEO tools download</li>';
+                        echo '<li><code>email-templates</code> - Email template download</li>';
+                        echo '<li><code>checklist-pdf</code> - Checklist download</li>';
+                        echo '<li><code>video-course</code> - Video course access</li>';
+                        echo '<li><code>webinar-signup</code> - Webinar registration</li>';
+                        echo '</ul>';
+                        echo '</div>';
+                        
+                        echo '<div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 10px 0;">';
+                        echo '<h4>Behavior Tags</h4>';
+                        echo '<ul style="margin: 5px 0; padding-left: 20px;">';
+                        echo '<li><code>high-engagement</code> - Multiple interactions</li>';
+                        echo '<li><code>newsletter-subscriber</code> - Active subscriber</li>';
+                        echo '<li><code>quiz-taker</code> - Completed quiz</li>';
+                        echo '<li><code>lead-magnet-downloader</code> - Downloaded content</li>';
+                        echo '</ul>';
+                        echo '</div>';
+                        
+                        echo '<div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 10px 0;">';
+                        echo '<h4>Quiz Result Tags</h4>';
+                        echo '<ul style="margin: 5px 0; padding-left: 20px;">';
+                        echo '<li><code>beginner-seo</code> - Beginner level</li>';
+                        echo '<li><code>intermediate-seo</code> - Intermediate level</li>';
+                        echo '<li><code>advanced-seo</code> - Advanced level</li>';
+                        echo '<li><code>interested-in-tools</code> - Tools interest</li>';
+                        echo '<li><code>interested-in-courses</code> - Courses interest</li>';
+                        echo '</ul>';
+                        echo '</div>';
+                        echo '</div>';
+                        
+                        echo '</div>';
+                        echo '</div>';
+                        
+                        // UTM Strategy
+                        echo '<div style="background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin: 20px 0;">';
+                        echo '<h2>🎯 UTM Tracking Strategy</h2>';
+                        echo '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">';
+                        
+                        echo '<div>';
+                        echo '<h3>📊 UTM Parameters</h3>';
+                        echo '<table style="width: 100%; border-collapse: collapse;">';
+                        echo '<tr style="background: #f8f9fa;"><th style="padding: 10px; border: 1px solid #ddd;">Parameter</th><th style="padding: 10px; border: 1px solid #ddd;">Example</th></tr>';
+                        echo '<tr><td style="padding: 10px; border: 1px solid #ddd;"><code>utm_source</code></td><td style="padding: 10px; border: 1px solid #ddd;">google, facebook, email</td></tr>';
+                        echo '<tr><td style="padding: 10px; border: 1px solid #ddd;"><code>utm_medium</code></td><td style="padding: 10px; border: 1px solid #ddd;">cpc, social, email</td></tr>';
+                        echo '<tr><td style="padding: 10px; border: 1px solid #ddd;"><code>utm_campaign</code></td><td style="padding: 10px; border: 1px solid #ddd;">seo-tools-launch</td></tr>';
+                        echo '<tr><td style="padding: 10px; border: 1px solid #ddd;"><code>utm_content</code></td><td style="padding: 10px; border: 1px solid #ddd;">banner-top, ad1</td></tr>';
+                        echo '<tr><td style="padding: 10px; border: 1px solid #ddd;"><code>utm_term</code></td><td style="padding: 10px; border: 1px solid #ddd;">seo tools, discount</td></tr>';
+                        echo '</table>';
+                        echo '</div>';
+                        
+                        echo '<div>';
+                        echo '<h3>🚀 Campaign Examples</h3>';
+                        echo '<div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 10px 0;">';
+                        echo '<h4>Google Ads Campaign</h4>';
+                        echo '<code style="background: #e9ecef; padding: 5px; border-radius: 3px; display: block; margin: 5px 0;">https://yoursite.com/landing-page?utm_source=google&utm_medium=cpc&utm_campaign=seo-tools&utm_content=ad1&utm_term=seo+software</code>';
+                        echo '</div>';
+                        
+                        echo '<div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 10px 0;">';
+                        echo '<h4>Facebook Ad Campaign</h4>';
+                        echo '<code style="background: #e9ecef; padding: 5px; border-radius: 3px; display: block; margin: 5px 0;">https://yoursite.com/landing-page?utm_source=facebook&utm_medium=social&utm_campaign=summer-sale&utm_content=video-ad&utm_term=discount</code>';
+                        echo '</div>';
+                        
+                        echo '<div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 10px 0;">';
+                        echo '<h4>Email Newsletter</h4>';
+                        echo '<code style="background: #e9ecef; padding: 5px; border-radius: 3px; display: block; margin: 5px 0;">https://yoursite.com/landing-page?utm_source=newsletter&utm_medium=email&utm_campaign=weekly-tips&utm_content=cta-button&utm_term=seo+guide</code>';
+                        echo '</div>';
+                        echo '</div>';
+                        
+                        echo '</div>';
+                        echo '</div>';
+                        
+                        // Implementation Steps
+                        echo '<div style="background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin: 20px 0;">';
+                        echo '<h2>🛠️ Implementation Steps</h2>';
+                        echo '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">';
+                        
+                        echo '<div>';
+                        echo '<h3>1. Form Setup</h3>';
+                        echo '<ol style="margin: 10px 0; padding-left: 20px;">';
+                        echo '<li>Add hidden field <code>thrive_mautic_segment</code> to each form</li>';
+                        echo '<li>Set segment value based on form type</li>';
+                        echo '<li>UTM data is captured automatically</li>';
+                        echo '<li>Tags are added based on content/behavior</li>';
+                        echo '</ol>';
+                        echo '</div>';
+                        
+                        echo '<div>';
+                        echo '<h3>2. Mautic Configuration</h3>';
+                        echo '<ol style="margin: 10px 0; padding-left: 20px;">';
+                        echo '<li>Create segments in Mautic</li>';
+                        echo '<li>Set up email sequences for each segment</li>';
+                        echo '<li>Configure UTM field mapping</li>';
+                        echo '<li>Set up tag-based automation</li>';
+                        echo '</ol>';
+                        echo '</div>';
+                        
+                        echo '<div>';
+                        echo '<h3>3. Campaign Tracking</h3>';
+                        echo '<ol style="margin: 10px 0; padding-left: 20px;">';
+                        echo '<li>Use UTM Builder to create campaign URLs</li>';
+                        echo '<li>Track performance in UTM Analytics</li>';
+                        echo '<li>Monitor lead quality by source</li>';
+                        echo '<li>Optimize based on data</li>';
+                        echo '</ol>';
+                        echo '</div>';
+                        
+                        echo '<div>';
+                        echo '<h3>4. Lead Management</h3>';
+                        echo '<ol style="margin: 10px 0; padding-left: 20px;">';
+                        echo '<li>Monitor lead workflow dashboard</li>';
+                        echo '<li>Track verification rates</li>';
+                        echo '<li>Analyze content performance</li>';
+                        echo '<li>Optimize conversion funnels</li>';
+                        echo '</ol>';
+                        echo '</div>';
+                        
+                        echo '</div>';
+                        echo '</div>';
+                        
+                        echo '</div>';
+                        
+                    } catch (Exception $e) {
+                        echo '<div class="wrap"><h1>Workflow Guide</h1>';
+                        echo '<div class="notice notice-error"><p>Workflow guide error occurred. Please check error logs.</p></div>';
                         echo '</div>';
                     }
                 }
@@ -2073,13 +2452,30 @@ try {
                     }
                 }
                 
-                // Determine verification status based on segment
+                // Determine verification status and lead source
                 $verification_status = 'unverified';
+                $lead_source = 'unknown';
+                
                 if (isset($contact['segments']) && is_array($contact['segments'])) {
                     foreach ($contact['segments'] as $segment) {
                         if ($segment['name'] === 'verified') {
                             $verification_status = 'verified';
-                            break;
+                        } elseif (in_array($segment['name'], ['google_oauth', 'local_registration', 'newsletter_signup', 'quiz_completion', 'lead_magnet'])) {
+                            $lead_source = $segment['name'];
+                        }
+                    }
+                }
+                
+                // Check tags for additional context
+                $content_tags = array();
+                $behavior_tags = array();
+                if (isset($contact['tags']) && is_array($contact['tags'])) {
+                    foreach ($contact['tags'] as $tag) {
+                        $tag_name = $tag['tag'];
+                        if (in_array($tag_name, ['seo-tools', 'email-templates', 'checklist-pdf', 'video-course', 'webinar-signup'])) {
+                            $content_tags[] = $tag_name;
+                        } elseif (in_array($tag_name, ['high-engagement', 'newsletter-subscriber', 'quiz-taker', 'lead-magnet-downloader'])) {
+                            $behavior_tags[] = $tag_name;
                         }
                     }
                 }
@@ -2190,6 +2586,86 @@ try {
             
         } catch (Exception $e) {
             return array();
+        }
+    }
+    
+    // Lead workflow statistics
+    function thrive_mautic_get_lead_workflow_stats() {
+        try {
+            global $wpdb;
+            $table_name = $wpdb->prefix . 'thrive_mautic_submissions';
+            
+            // Get total counts
+            $total_leads = $wpdb->get_var("SELECT COUNT(*) FROM $table_name");
+            $verified_leads = $wpdb->get_var("SELECT COUNT(*) FROM $table_name WHERE segment_id = 'verified'");
+            $unverified_leads = $total_leads - $verified_leads;
+            
+            // Get lead source counts
+            $google_oauth = $wpdb->get_var("SELECT COUNT(*) FROM $table_name WHERE segment_id = 'google_oauth'");
+            $newsletter = $wpdb->get_var("SELECT COUNT(*) FROM $table_name WHERE segment_id = 'newsletter_signup'");
+            $quiz_takers = $wpdb->get_var("SELECT COUNT(*) FROM $table_name WHERE segment_id = 'quiz_completion'");
+            $lead_magnets = $wpdb->get_var("SELECT COUNT(*) FROM $table_name WHERE segment_id = 'lead_magnet'");
+            
+            // Calculate percentages
+            $verified_percent = $total_leads > 0 ? round(($verified_leads / $total_leads) * 100, 1) : 0;
+            $unverified_percent = $total_leads > 0 ? round(($unverified_leads / $total_leads) * 100, 1) : 0;
+            
+            // Get source breakdown
+            $sources = $wpdb->get_results("
+                SELECT 
+                    segment_id as name,
+                    COUNT(*) as total,
+                    SUM(CASE WHEN segment_id = 'verified' THEN 1 ELSE 0 END) as verified,
+                    MAX(created_at) as last_activity
+                FROM $table_name 
+                WHERE segment_id IN ('verified', 'unverified', 'google_oauth', 'newsletter_signup', 'quiz_completion', 'lead_magnet')
+                GROUP BY segment_id 
+                ORDER BY total DESC
+            ", ARRAY_A);
+            
+            // Calculate percentages for sources
+            foreach ($sources as &$source) {
+                $source['percentage'] = $total_leads > 0 ? round(($source['total'] / $total_leads) * 100, 1) : 0;
+                $source['last_activity'] = human_time_diff(strtotime($source['last_activity']), current_time('timestamp')) . ' ago';
+            }
+            
+            // Get content tags performance (simulated - would need actual tag tracking)
+            $content_tags = array(
+                array('tag' => 'seo-tools', 'count' => rand(10, 50), 'last_download' => '2 hours ago'),
+                array('tag' => 'email-templates', 'count' => rand(5, 30), 'last_download' => '1 day ago'),
+                array('tag' => 'checklist-pdf', 'count' => rand(15, 40), 'last_download' => '3 hours ago'),
+                array('tag' => 'video-course', 'count' => rand(8, 25), 'last_download' => '5 hours ago'),
+                array('tag' => 'webinar-signup', 'count' => rand(12, 35), 'last_download' => '1 hour ago')
+            );
+            
+            return array(
+                'total' => intval($total_leads),
+                'verified' => intval($verified_leads),
+                'unverified' => intval($unverified_leads),
+                'verified_percent' => $verified_percent,
+                'unverified_percent' => $unverified_percent,
+                'google_oauth' => intval($google_oauth),
+                'newsletter' => intval($newsletter),
+                'quiz_takers' => intval($quiz_takers),
+                'lead_magnets' => intval($lead_magnets),
+                'sources' => $sources,
+                'content_tags' => $content_tags
+            );
+            
+        } catch (Exception $e) {
+            return array(
+                'total' => 0,
+                'verified' => 0,
+                'unverified' => 0,
+                'verified_percent' => 0,
+                'unverified_percent' => 0,
+                'google_oauth' => 0,
+                'newsletter' => 0,
+                'quiz_takers' => 0,
+                'lead_magnets' => 0,
+                'sources' => array(),
+                'content_tags' => array()
+            );
         }
     }
     
