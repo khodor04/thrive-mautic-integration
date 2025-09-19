@@ -3,7 +3,7 @@
  * Plugin Name: Thrive-Mautic Integration
  * Plugin URI: https://yourwebsite.com/thrive-mautic-integration
  * Description: Thrive Themes Integration With Mautic
- * Version: 5.7.5
+ * Version: 5.7.6
  * Author: Khodor Ghalayini
  * Author URI: https://yourwebsite.com
  * License: GPL v2 or later
@@ -18,7 +18,7 @@ if (!defined('ABSPATH')) {
 // WRAP EVERYTHING IN TRY-CATCH TO PREVENT CRASHES
 try {
     // Define plugin constants
-    define('THRIVE_MAUTIC_VERSION', '5.7.5');
+    define('THRIVE_MAUTIC_VERSION', '5.7.6');
     define('THRIVE_MAUTIC_PLUGIN_FILE', __FILE__);
     define('THRIVE_MAUTIC_PLUGIN_DIR', plugin_dir_path(__FILE__));
 
@@ -302,6 +302,154 @@ try {
                     } catch (Exception $e) {
                         echo '<div class="wrap"><h1>Thrive-Mautic Submissions</h1>';
                         echo '<div class="notice notice-error"><p>Submissions error occurred. Please check error logs.</p></div>';
+                        echo '</div>';
+                    }
+                }
+            );
+            
+            // Contact Sync Submenu
+            add_submenu_page(
+                'thrive-mautic-dashboard',
+                'Contact Sync',
+                'Contact Sync',
+                'manage_options',
+                'thrive-mautic-contacts',
+                function() {
+                    try {
+                        echo '<div class="wrap">';
+                        echo '<h1>Contact Sync Dashboard</h1>';
+                        
+                        // Handle manual sync
+                        if (isset($_POST['manual_sync']) && wp_verify_nonce($_POST['thrive_mautic_nonce'], 'manual_sync')) {
+                            $sync_result = thrive_mautic_sync_contacts_from_mautic();
+                            if ($sync_result['success']) {
+                                echo '<div class="notice notice-success"><p>Sync completed! ' . $sync_result['count'] . ' contacts synced.</p></div>';
+                            } else {
+                                echo '<div class="notice notice-error"><p>Sync failed: ' . $sync_result['message'] . '</p></div>';
+                            }
+                        }
+                        
+                        // Get contact statistics
+                        $stats = thrive_mautic_get_contact_stats();
+                        
+                        // Statistics Summary
+                        echo '<div style="background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin: 20px 0;">';
+                        echo '<h2>📊 Contact Statistics</h2>';
+                        echo '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin: 20px 0;">';
+                        
+                        echo '<div class="stats-card" style="background: #f8f9fa; padding: 15px; border-radius: 8px; border-left: 4px solid #007cba;">';
+                        echo '<h3>Total Contacts</h3>';
+                        echo '<div style="font-size: 24px; font-weight: bold; color: #007cba;">' . $stats['total'] . '</div>';
+                        echo '</div>';
+                        
+                        echo '<div class="stats-card" style="background: #f8f9fa; padding: 15px; border-radius: 8px; border-left: 4px solid #28a745;">';
+                        echo '<h3>Verified</h3>';
+                        echo '<div style="font-size: 24px; font-weight: bold; color: #28a745;">' . $stats['verified'] . ' (' . $stats['verified_percent'] . '%)</div>';
+                        echo '</div>';
+                        
+                        echo '<div class="stats-card" style="background: #f8f9fa; padding: 15px; border-radius: 8px; border-left: 4px solid #ffc107;">';
+                        echo '<h3>Unverified</h3>';
+                        echo '<div style="font-size: 24px; font-weight: bold; color: #ffc107;">' . $stats['unverified'] . ' (' . $stats['unverified_percent'] . '%)</div>';
+                        echo '</div>';
+                        
+                        echo '<div class="stats-card" style="background: #f8f9fa; padding: 15px; border-radius: 8px; border-left: 4px solid #6f42c1;">';
+                        echo '<h3>Last Sync</h3>';
+                        echo '<div style="font-size: 16px; font-weight: bold; color: #6f42c1;">' . $stats['last_sync'] . '</div>';
+                        echo '</div>';
+                        
+                        echo '<div class="stats-card" style="background: #f8f9fa; padding: 15px; border-radius: 8px; border-left: 4px solid #e83e8c;">';
+                        echo '<h3>Sync Status</h3>';
+                        echo '<div style="font-size: 16px; font-weight: bold; color: #e83e8c;">' . $stats['sync_status'] . '</div>';
+                        echo '</div>';
+                        
+                        echo '<div class="stats-card" style="background: #f8f9fa; padding: 15px; border-radius: 8px; border-left: 4px solid #20c997;">';
+                        echo '<h3>Unique Tags</h3>';
+                        echo '<div style="font-size: 24px; font-weight: bold; color: #20c997;">' . $stats['unique_tags'] . '</div>';
+                        echo '</div>';
+                        
+                        echo '</div>';
+                        echo '</div>';
+                        
+                        // Sync Controls
+                        echo '<div style="background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin: 20px 0;">';
+                        echo '<h2>🔄 Sync Controls</h2>';
+                        echo '<form method="post" style="display: inline;">';
+                        wp_nonce_field('manual_sync', 'thrive_mautic_nonce');
+                        echo '<input type="submit" name="manual_sync" class="button button-primary" value="🔄 Sync Now" onclick="this.value=\'Syncing...\'; this.disabled=true;">';
+                        echo '</form>';
+                        echo '<button type="button" class="button" onclick="location.reload();" style="margin-left: 10px;">🔄 Refresh</button>';
+                        echo '<p class="description">Manual sync will pull all contacts from Mautic and update local database. This may take a few minutes for large contact lists.</p>';
+                        echo '</div>';
+                        
+                        // Contacts Table
+                        $contacts = thrive_mautic_get_synced_contacts(50); // Get last 50 contacts
+                        
+                        if (!empty($contacts)) {
+                            echo '<div style="background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin: 20px 0;">';
+                            echo '<h2>📋 Recent Contacts</h2>';
+                            echo '<table class="wp-list-table widefat fixed striped">';
+                            echo '<thead>';
+                            echo '<tr>';
+                            echo '<th>Name</th>';
+                            echo '<th>Email</th>';
+                            echo '<th>Phone</th>';
+                            echo '<th>Company</th>';
+                            echo '<th>Segment</th>';
+                            echo '<th>Tags</th>';
+                            echo '<th>Status</th>';
+                            echo '<th>Last Synced</th>';
+                            echo '</tr>';
+                            echo '</thead>';
+                            echo '<tbody>';
+                            
+                            foreach ($contacts as $contact) {
+                                $verification_status = $contact['verification_status'] === 'verified' ? 
+                                    '<span style="color: #28a745; font-weight: bold;">✅ Verified</span>' : 
+                                    '<span style="color: #ffc107; font-weight: bold;">⏳ Unverified</span>';
+                                
+                                $tags_display = '';
+                                if (!empty($contact['tags'])) {
+                                    $tags = json_decode($contact['tags'], true);
+                                    if (is_array($tags)) {
+                                        $tags_display = implode(', ', array_slice($tags, 0, 3));
+                                        if (count($tags) > 3) {
+                                            $tags_display .= '... (+' . (count($tags) - 3) . ' more)';
+                                        }
+                                    }
+                                }
+                                
+                                echo '<tr>';
+                                echo '<td><strong>' . esc_html($contact['firstname'] . ' ' . $contact['lastname']) . '</strong></td>';
+                                echo '<td>' . esc_html($contact['email']) . '</td>';
+                                echo '<td>' . esc_html($contact['phone']) . '</td>';
+                                echo '<td>' . esc_html($contact['company']) . '</td>';
+                                echo '<td><code>' . esc_html($contact['segment_id']) . '</code></td>';
+                                echo '<td title="' . esc_attr($tags_display) . '">' . esc_html($tags_display) . '</td>';
+                                echo '<td>' . $verification_status . '</td>';
+                                echo '<td>' . esc_html($contact['last_synced']) . '</td>';
+                                echo '</tr>';
+                            }
+                            
+                            echo '</tbody>';
+                            echo '</table>';
+                            echo '</div>';
+                        } else {
+                            echo '<div class="notice notice-warning"><p>No contacts found. Click "Sync Now" to pull contacts from Mautic.</p></div>';
+                        }
+                        
+                        // Sync Settings
+                        echo '<div style="background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin: 20px 0;">';
+                        echo '<h2>⚙️ Sync Settings</h2>';
+                        echo '<p><strong>Auto Sync:</strong> Every 15 minutes</p>';
+                        echo '<p><strong>Webhook URL:</strong> <code>' . home_url('/wp-json/thrive-mautic/v1/webhook') . '</code></p>';
+                        echo '<p><strong>Mautic Integration:</strong> Add this webhook URL to your Mautic webhook settings for real-time updates.</p>';
+                        echo '</div>';
+                        
+                        echo '</div>';
+                        
+                    } catch (Exception $e) {
+                        echo '<div class="wrap"><h1>Contact Sync Dashboard</h1>';
+                        echo '<div class="notice notice-error"><p>Contact sync error occurred. Please check error logs.</p></div>';
                         echo '</div>';
                     }
                 }
@@ -1357,6 +1505,33 @@ try {
             
             dbDelta($sql_logs);
             
+            // Contacts sync table
+            $contacts_table = $wpdb->prefix . 'thrive_mautic_contacts';
+            $sql_contacts = "CREATE TABLE $contacts_table (
+                id mediumint(9) NOT NULL AUTO_INCREMENT,
+                mautic_contact_id varchar(100) NOT NULL,
+                email varchar(255) NOT NULL,
+                firstname varchar(255) DEFAULT '',
+                lastname varchar(255) DEFAULT '',
+                phone varchar(50) DEFAULT '',
+                company varchar(255) DEFAULT '',
+                segment_id varchar(100) DEFAULT '',
+                tags text DEFAULT '',
+                verification_status varchar(20) DEFAULT 'unverified',
+                last_synced datetime DEFAULT CURRENT_TIMESTAMP,
+                sync_status varchar(20) DEFAULT 'synced',
+                created_at datetime DEFAULT CURRENT_TIMESTAMP,
+                updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                PRIMARY KEY (id),
+                UNIQUE KEY mautic_contact_id (mautic_contact_id),
+                KEY email (email),
+                KEY segment_id (segment_id),
+                KEY verification_status (verification_status),
+                KEY sync_status (sync_status)
+            ) $charset_collate;";
+            
+            dbDelta($sql_contacts);
+            
         } catch (Exception $e) {
             // Silent fail - don't crash
         }
@@ -1585,6 +1760,184 @@ try {
             return array();
         }
     }
+    
+    // Contact sync functions
+    function thrive_mautic_sync_contacts_from_mautic() {
+        try {
+            $base_url = get_option('thrive_mautic_base_url', '');
+            $username = get_option('thrive_mautic_username', '');
+            $encrypted_password = get_option('thrive_mautic_password', '');
+            
+            if (empty($base_url) || empty($username) || empty($encrypted_password)) {
+                return array('success' => false, 'message' => 'Mautic credentials not configured');
+            }
+            
+            $password = decrypt_password($encrypted_password);
+            $auth = base64_encode($username . ':' . $password);
+            
+            // Get contacts from Mautic (limit to 1000 for performance)
+            $response = wp_remote_get($base_url . '/api/contacts?limit=1000', array(
+                'headers' => array(
+                    'Authorization' => 'Basic ' . $auth,
+                    'User-Agent' => 'Thrive-Mautic-Plugin/' . THRIVE_MAUTIC_VERSION
+                ),
+                'timeout' => 60,
+                'sslverify' => true
+            ));
+            
+            if (is_wp_error($response)) {
+                return array('success' => false, 'message' => $response->get_error_message());
+            }
+            
+            $response_code = wp_remote_retrieve_response_code($response);
+            if ($response_code !== 200) {
+                return array('success' => false, 'message' => 'Mautic API error: ' . $response_code);
+            }
+            
+            $data = json_decode(wp_remote_retrieve_body($response), true);
+            if (!isset($data['contacts']) || !is_array($data['contacts'])) {
+                return array('success' => false, 'message' => 'Invalid response from Mautic');
+            }
+            
+            global $wpdb;
+            $table_name = $wpdb->prefix . 'thrive_mautic_contacts';
+            $synced_count = 0;
+            
+            foreach ($data['contacts'] as $contact) {
+                $contact_id = $contact['id'];
+                $email = $contact['fields']['core']['email']['value'] ?? '';
+                $firstname = $contact['fields']['core']['firstname']['value'] ?? '';
+                $lastname = $contact['fields']['core']['lastname']['value'] ?? '';
+                $phone = $contact['fields']['core']['phone']['value'] ?? '';
+                $company = $contact['fields']['core']['company']['value'] ?? '';
+                
+                // Get tags
+                $tags = array();
+                if (isset($contact['tags']) && is_array($contact['tags'])) {
+                    foreach ($contact['tags'] as $tag) {
+                        $tags[] = $tag['tag'];
+                    }
+                }
+                
+                // Determine verification status based on segment
+                $verification_status = 'unverified';
+                if (isset($contact['segments']) && is_array($contact['segments'])) {
+                    foreach ($contact['segments'] as $segment) {
+                        if ($segment['name'] === 'verified') {
+                            $verification_status = 'verified';
+                            break;
+                        }
+                    }
+                }
+                
+                // Get segment ID
+                $segment_id = '';
+                if (isset($contact['segments']) && is_array($contact['segments']) && !empty($contact['segments'])) {
+                    $segment_id = $contact['segments'][0]['name'] ?? '';
+                }
+                
+                // Insert or update contact
+                $wpdb->replace(
+                    $table_name,
+                    array(
+                        'mautic_contact_id' => $contact_id,
+                        'email' => $email,
+                        'firstname' => $firstname,
+                        'lastname' => $lastname,
+                        'phone' => $phone,
+                        'company' => $company,
+                        'segment_id' => $segment_id,
+                        'tags' => json_encode($tags),
+                        'verification_status' => $verification_status,
+                        'last_synced' => current_time('mysql'),
+                        'sync_status' => 'synced'
+                    ),
+                    array('%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s')
+                );
+                
+                $synced_count++;
+            }
+            
+            // Update last sync time
+            update_option('thrive_mautic_last_sync', current_time('mysql'));
+            
+            return array('success' => true, 'count' => $synced_count);
+            
+        } catch (Exception $e) {
+            thrive_mautic_log('error', 'Contact sync error: ' . $e->getMessage());
+            return array('success' => false, 'message' => $e->getMessage());
+        }
+    }
+    
+    function thrive_mautic_get_contact_stats() {
+        try {
+            global $wpdb;
+            $table_name = $wpdb->prefix . 'thrive_mautic_contacts';
+            
+            $total = $wpdb->get_var("SELECT COUNT(*) FROM $table_name");
+            $verified = $wpdb->get_var("SELECT COUNT(*) FROM $table_name WHERE verification_status = 'verified'");
+            $unverified = $total - $verified;
+            
+            $verified_percent = $total > 0 ? round(($verified / $total) * 100, 1) : 0;
+            $unverified_percent = $total > 0 ? round(($unverified / $total) * 100, 1) : 0;
+            
+            $last_sync = get_option('thrive_mautic_last_sync', 'Never');
+            if ($last_sync !== 'Never') {
+                $last_sync = human_time_diff(strtotime($last_sync), current_time('timestamp')) . ' ago';
+            }
+            
+            // Count unique tags
+            $tags_result = $wpdb->get_results("SELECT tags FROM $table_name WHERE tags != '' AND tags != '[]'");
+            $all_tags = array();
+            foreach ($tags_result as $row) {
+                $tags = json_decode($row->tags, true);
+                if (is_array($tags)) {
+                    $all_tags = array_merge($all_tags, $tags);
+                }
+            }
+            $unique_tags = count(array_unique($all_tags));
+            
+            return array(
+                'total' => intval($total),
+                'verified' => intval($verified),
+                'unverified' => intval($unverified),
+                'verified_percent' => $verified_percent,
+                'unverified_percent' => $unverified_percent,
+                'last_sync' => $last_sync,
+                'sync_status' => 'Active',
+                'unique_tags' => $unique_tags
+            );
+            
+        } catch (Exception $e) {
+            return array(
+                'total' => 0,
+                'verified' => 0,
+                'unverified' => 0,
+                'verified_percent' => 0,
+                'unverified_percent' => 0,
+                'last_sync' => 'Error',
+                'sync_status' => 'Error',
+                'unique_tags' => 0
+            );
+        }
+    }
+    
+    function thrive_mautic_get_synced_contacts($limit = 50) {
+        try {
+            global $wpdb;
+            $table_name = $wpdb->prefix . 'thrive_mautic_contacts';
+            
+            $contacts = $wpdb->get_results($wpdb->prepare(
+                "SELECT * FROM $table_name ORDER BY last_synced DESC LIMIT %d",
+                $limit
+            ), ARRAY_A);
+            
+            return $contacts ?: array();
+            
+        } catch (Exception $e) {
+            return array();
+        }
+    }
 
     // Plugin activation hook
     register_activation_hook(__FILE__, function() {
@@ -1601,6 +1954,11 @@ try {
             // Schedule background processing
             if (!wp_next_scheduled('thrive_mautic_process_queue')) {
                 wp_schedule_event(time(), 'every_5_minutes', 'thrive_mautic_process_queue');
+            }
+            
+            // Schedule contact sync
+            if (!wp_next_scheduled('thrive_mautic_sync_contacts')) {
+                wp_schedule_event(time(), 'every_15_minutes', 'thrive_mautic_sync_contacts');
             }
             
         } catch (Exception $e) {
@@ -1832,6 +2190,9 @@ try {
     // Background processing
     add_action('thrive_mautic_process_queue', 'thrive_mautic_process_pending_submissions');
     
+    // Contact sync
+    add_action('thrive_mautic_sync_contacts', 'thrive_mautic_sync_contacts_from_mautic');
+    
     function thrive_mautic_process_pending_submissions() {
         try {
             global $wpdb;
@@ -1926,11 +2287,15 @@ try {
         }
     }
     
-    // Add custom cron interval
+    // Add custom cron intervals
     add_filter('cron_schedules', function($schedules) {
         $schedules['every_5_minutes'] = array(
             'interval' => 300,
             'display' => __('Every 5 Minutes')
+        );
+        $schedules['every_15_minutes'] = array(
+            'interval' => 900,
+            'display' => __('Every 15 Minutes')
         );
         return $schedules;
     });
