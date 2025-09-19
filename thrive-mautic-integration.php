@@ -3,7 +3,7 @@
  * Plugin Name: Thrive-Mautic Integration
  * Plugin URI: https://yourwebsite.com/thrive-mautic-integration
  * Description: Thrive Themes Integration With Mautic
- * Version: 5.8.3
+ * Version: 5.8.4
  * Author: Khodor Ghalayini
  * Author URI: https://yourwebsite.com
  * License: GPL v2 or later
@@ -18,7 +18,7 @@ if (!defined('ABSPATH')) {
 // WRAP EVERYTHING IN TRY-CATCH TO PREVENT CRASHES
 try {
     // Define plugin constants
-    define('THRIVE_MAUTIC_VERSION', '5.8.3');
+    define('THRIVE_MAUTIC_VERSION', '5.8.4');
     define('THRIVE_MAUTIC_PLUGIN_FILE', __FILE__);
     define('THRIVE_MAUTIC_PLUGIN_DIR', plugin_dir_path(__FILE__));
 
@@ -843,7 +843,13 @@ try {
                         echo '</div>';
                         
                         echo '<div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 10px 0;">';
-                        echo '<h4>3. Name Field (RECOMMENDED)</h4>';
+                        echo '<h4>3. Hidden Tags Field (OPTIONAL)</h4>';
+                        echo '<code style="background: #e9ecef; padding: 5px; border-radius: 3px; display: block; margin: 5px 0;">&lt;input type="hidden" name="thrive_mautic_tags" value="tag1,tag2,tag3"&gt;</code>';
+                        echo '<p style="font-size: 14px; color: #666; margin: 10px 0;">Comma-separated tags for precise lead categorization. Overrides automatic tagging.</p>';
+                        echo '</div>';
+                        
+                        echo '<div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 10px 0;">';
+                        echo '<h4>4. Name Field (RECOMMENDED)</h4>';
                         echo '<code style="background: #e9ecef; padding: 5px; border-radius: 3px; display: block; margin: 5px 0;">&lt;input type="text" name="name"&gt;</code>';
                         echo '<p style="font-size: 14px; color: #666; margin: 10px 0;">Personalizes the experience.</p>';
                         echo '</div>';
@@ -875,6 +881,7 @@ try {
                         echo '<div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 10px 0;">';
                         echo '<pre style="background: #e9ecef; padding: 10px; border-radius: 3px; overflow-x: auto;"><code>&lt;form&gt;
   &lt;input type="hidden" name="thrive_mautic_segment" value="newsletter_signup"&gt;
+  &lt;input type="hidden" name="thrive_mautic_tags" value="newsletter,subscriber,weekly"&gt;
   &lt;input type="email" name="email" placeholder="Your email" required&gt;
   &lt;input type="text" name="name" placeholder="Your name"&gt;
   &lt;button type="submit"&gt;Subscribe&lt;/button&gt;
@@ -887,6 +894,7 @@ try {
                         echo '<div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 10px 0;">';
                         echo '<pre style="background: #e9ecef; padding: 10px; border-radius: 3px; overflow-x: auto;"><code>&lt;form&gt;
   &lt;input type="hidden" name="thrive_mautic_segment" value="lead_magnet"&gt;
+  &lt;input type="hidden" name="thrive_mautic_tags" value="ai-guide,beginner,content-downloader"&gt;
   &lt;input type="email" name="email" placeholder="Your email" required&gt;
   &lt;input type="text" name="name" placeholder="Your name"&gt;
   &lt;input type="text" name="company" placeholder="Company"&gt;
@@ -900,6 +908,7 @@ try {
                         echo '<div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 10px 0;">';
                         echo '<pre style="background: #e9ecef; padding: 10px; border-radius: 3px; overflow-x: auto;"><code>&lt;form&gt;
   &lt;input type="hidden" name="thrive_mautic_segment" value="quiz_completion"&gt;
+  &lt;input type="hidden" name="thrive_mautic_tags" value="quiz,engaged,beginner-level"&gt;
   &lt;input type="email" name="email" placeholder="Your email" required&gt;
   &lt;input type="text" name="name" placeholder="Your name"&gt;
   &lt;input type="hidden" name="quiz_result" value="beginner"&gt;
@@ -913,6 +922,7 @@ try {
                         echo '<div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 10px 0;">';
                         echo '<pre style="background: #e9ecef; padding: 10px; border-radius: 3px; overflow-x: auto;"><code>&lt;form&gt;
   &lt;input type="hidden" name="thrive_mautic_segment" value="contact_form"&gt;
+  &lt;input type="hidden" name="thrive_mautic_tags" value="inquiry,support,high-intent"&gt;
   &lt;input type="email" name="email" placeholder="Your email" required&gt;
   &lt;input type="text" name="name" placeholder="Your name"&gt;
   &lt;input type="text" name="phone" placeholder="Phone"&gt;
@@ -2742,12 +2752,13 @@ try {
             $form_data = $_POST['form_data'];
             $form_id = isset($_POST['form_id']) ? sanitize_text_field($_POST['form_id']) : 'unknown';
             
-            // Extract email, name, phone, company, custom segment, and UTM data
+            // Extract email, name, phone, company, custom segment, custom tags, and UTM data
             $email = '';
             $name = '';
             $phone = '';
             $company = '';
             $custom_segment = '';
+            $custom_tags = '';
             $utm_data = array();
             
             foreach ($form_data as $field) {
@@ -2765,6 +2776,8 @@ try {
                         $company = $field_value;
                     } elseif ($field_name === 'thrive_mautic_segment') {
                         $custom_segment = $field_value;
+                    } elseif ($field_name === 'thrive_mautic_tags') {
+                        $custom_tags = $field_value;
                     } elseif (strpos($field_name, 'utm_') === 0) {
                         $utm_data[$field_name] = $field_value;
                     }
@@ -2783,6 +2796,7 @@ try {
                     'phone' => $phone,
                     'company' => $company,
                     'segment_id' => $segment_id,
+                    'custom_tags' => $custom_tags,
                     'utm_data' => $utm_data
                 ));
             }
@@ -2798,8 +2812,9 @@ try {
                 return;
             }
             
-            // Check for custom segment and UTM data
+            // Check for custom segment, custom tags, and UTM data
             $custom_segment = isset($lightbox_data['thrive_mautic_segment']) ? sanitize_text_field($lightbox_data['thrive_mautic_segment']) : '';
+            $custom_tags = isset($lightbox_data['thrive_mautic_tags']) ? sanitize_text_field($lightbox_data['thrive_mautic_tags']) : '';
             $segment_id = !empty($custom_segment) ? $custom_segment : 'thrive_lightbox';
             
             // Extract UTM data
@@ -2818,6 +2833,7 @@ try {
                 'phone' => isset($lightbox_data['phone']) ? sanitize_text_field($lightbox_data['phone']) : '',
                 'company' => isset($lightbox_data['company']) ? sanitize_text_field($lightbox_data['company']) : '',
                 'segment_id' => $segment_id,
+                'custom_tags' => $custom_tags,
                 'utm_data' => $utm_data
             ));
             
@@ -2832,8 +2848,9 @@ try {
                 return;
             }
             
-            // Check for custom segment and UTM data
+            // Check for custom segment, custom tags, and UTM data
             $custom_segment = isset($lead_data['thrive_mautic_segment']) ? sanitize_text_field($lead_data['thrive_mautic_segment']) : '';
+            $custom_tags = isset($lead_data['thrive_mautic_tags']) ? sanitize_text_field($lead_data['thrive_mautic_tags']) : '';
             $segment_id = !empty($custom_segment) ? $custom_segment : 'thrive_leads';
             
             // Extract UTM data
@@ -2852,6 +2869,7 @@ try {
                 'phone' => isset($lead_data['phone']) ? sanitize_text_field($lead_data['phone']) : '',
                 'company' => isset($lead_data['company']) ? sanitize_text_field($lead_data['company']) : '',
                 'segment_id' => $segment_id,
+                'custom_tags' => $custom_tags,
                 'utm_data' => $utm_data
             ));
             
@@ -2866,8 +2884,9 @@ try {
                 return;
             }
             
-            // Check for custom segment and UTM data
+            // Check for custom segment, custom tags, and UTM data
             $custom_segment = isset($user_data['thrive_mautic_segment']) ? sanitize_text_field($user_data['thrive_mautic_segment']) : '';
+            $custom_tags = isset($user_data['thrive_mautic_tags']) ? sanitize_text_field($user_data['thrive_mautic_tags']) : '';
             $segment_id = !empty($custom_segment) ? $custom_segment : 'thrive_quiz';
             
             // Extract UTM data
@@ -2886,6 +2905,7 @@ try {
                 'phone' => isset($user_data['phone']) ? sanitize_text_field($user_data['phone']) : '',
                 'company' => isset($user_data['company']) ? sanitize_text_field($user_data['company']) : '',
                 'segment_id' => $segment_id,
+                'custom_tags' => $custom_tags,
                 'utm_data' => $utm_data
             ));
             
@@ -2925,8 +2945,9 @@ try {
             global $wpdb;
             $table_name = $wpdb->prefix . 'thrive_mautic_submissions';
             
-            // Extract UTM data
+            // Extract UTM data and custom tags
             $utm_data = isset($data['utm_data']) ? $data['utm_data'] : array();
+            $custom_tags = isset($data['custom_tags']) ? sanitize_text_field($data['custom_tags']) : '';
             
             $wpdb->insert(
                 $table_name,
@@ -2938,6 +2959,7 @@ try {
                     'phone' => sanitize_text_field($data['phone']),
                     'company' => sanitize_text_field($data['company']),
                     'segment_id' => sanitize_text_field($data['segment_id']),
+                    'custom_tags' => $custom_tags,
                     'utm_source' => isset($utm_data['utm_source']) ? sanitize_text_field($utm_data['utm_source']) : '',
                     'utm_medium' => isset($utm_data['utm_medium']) ? sanitize_text_field($utm_data['utm_medium']) : '',
                     'utm_campaign' => isset($utm_data['utm_campaign']) ? sanitize_text_field($utm_data['utm_campaign']) : '',
@@ -3424,6 +3446,7 @@ try {
                 phone varchar(50) DEFAULT '',
                 company varchar(255) DEFAULT '',
                 segment_id varchar(100) DEFAULT '',
+                custom_tags text DEFAULT '',
                 utm_source varchar(255) DEFAULT '',
                 utm_medium varchar(255) DEFAULT '',
                 utm_campaign varchar(255) DEFAULT '',
@@ -4387,26 +4410,37 @@ try {
     }
     
     // Comprehensive tagging system
-    function thrive_mautic_generate_automatic_tags($form_type, $utm_data = array(), $custom_tags = array()) {
+    function thrive_mautic_generate_automatic_tags($form_type, $utm_data = array(), $custom_tags = array(), $page_context = array()) {
         try {
             $tags = array();
             
-            // 1. Form type tags
-            $form_type_tags = array(
-                'newsletter_signup' => array('newsletter', 'subscriber', 'email-list'),
-                'quiz_completion' => array('quiz', 'engaged', 'interactive'),
-                'lead_magnet' => array('lead-magnet', 'content-downloader', 'lead'),
-                'contact_form' => array('contact', 'inquiry', 'support'),
-                'local_registration' => array('registered', 'local-user', 'account'),
-                'google_oauth' => array('registered', 'google-user', 'account'),
-                'architect' => array('thrive-architect', 'form-submission'),
-                'leads' => array('thrive-leads', 'lead-capture'),
-                'quiz' => array('thrive-quiz', 'quiz-completion'),
-                'lightbox' => array('thrive-lightbox', 'popup-form')
-            );
+            // 1. Custom tags from hidden field (highest priority)
+            if (!empty($custom_tags)) {
+                if (is_string($custom_tags)) {
+                    // Split comma-separated tags
+                    $custom_tags = array_map('trim', explode(',', $custom_tags));
+                }
+                $tags = array_merge($tags, $custom_tags);
+            }
             
-            if (isset($form_type_tags[$form_type])) {
-                $tags = array_merge($tags, $form_type_tags[$form_type]);
+            // 2. Form type tags (only if no custom tags provided)
+            if (empty($custom_tags)) {
+                $form_type_tags = array(
+                    'newsletter_signup' => array('newsletter', 'subscriber', 'email-list'),
+                    'quiz_completion' => array('quiz', 'engaged', 'interactive'),
+                    'lead_magnet' => array('lead-magnet', 'content-downloader', 'lead'),
+                    'contact_form' => array('contact', 'inquiry', 'support'),
+                    'local_registration' => array('registered', 'local-user', 'account'),
+                    'google_oauth' => array('registered', 'google-user', 'account'),
+                    'architect' => array('thrive-architect', 'form-submission'),
+                    'leads' => array('thrive-leads', 'lead-capture'),
+                    'quiz' => array('thrive-quiz', 'quiz-completion'),
+                    'lightbox' => array('thrive-lightbox', 'popup-form')
+                );
+                
+                if (isset($form_type_tags[$form_type])) {
+                    $tags = array_merge($tags, $form_type_tags[$form_type]);
+                }
             }
             
             // 2. UTM-based tags
@@ -4558,6 +4592,161 @@ try {
             
         } catch (Exception $e) {
             thrive_mautic_log('error', 'Get contact tags failed: ' . $e->getMessage());
+            return array();
+        }
+    }
+    
+    // Generate content-specific tags based on page context
+    function thrive_mautic_generate_content_tags($page_context) {
+        try {
+            $tags = array();
+            
+            // Extract page information
+            $post_id = $page_context['post_id'] ?? 0;
+            $post_title = $page_context['post_title'] ?? '';
+            $post_content = $page_context['post_content'] ?? '';
+            $post_type = $page_context['post_type'] ?? '';
+            $post_slug = $page_context['post_slug'] ?? '';
+            $categories = $page_context['categories'] ?? array();
+            $tags_tax = $page_context['tags'] ?? array();
+            
+            // 1. Post type tags
+            if (!empty($post_type)) {
+                $tags[] = 'content-' . sanitize_title($post_type);
+            }
+            
+            // 2. Category-based tags
+            if (!empty($categories)) {
+                foreach ($categories as $category) {
+                    $tags[] = 'category-' . sanitize_title($category);
+                }
+            }
+            
+            // 3. WordPress tag-based tags
+            if (!empty($tags_tax)) {
+                foreach ($tags_tax as $tag) {
+                    $tags[] = 'wp-tag-' . sanitize_title($tag);
+                }
+            }
+            
+            // 4. Content analysis for topic-specific tags
+            $content_analysis = thrive_mautic_analyze_content($post_title, $post_content);
+            $tags = array_merge($tags, $content_analysis);
+            
+            // 5. Slug-based tags
+            if (!empty($post_slug)) {
+                $slug_parts = explode('-', $post_slug);
+                foreach ($slug_parts as $part) {
+                    if (strlen($part) > 2) { // Only meaningful parts
+                        $tags[] = 'slug-' . sanitize_title($part);
+                    }
+                }
+            }
+            
+            // 6. Lead magnet specific tags (if it's a lead magnet page)
+            if (strpos(strtolower($post_title), 'download') !== false || 
+                strpos(strtolower($post_title), 'guide') !== false ||
+                strpos(strtolower($post_title), 'ebook') !== false ||
+                strpos(strtolower($post_title), 'checklist') !== false) {
+                $tags[] = 'lead-magnet-page';
+            }
+            
+            // Remove duplicates and empty values
+            $tags = array_unique(array_filter($tags));
+            
+            return $tags;
+            
+        } catch (Exception $e) {
+            thrive_mautic_log('error', 'Content tag generation failed: ' . $e->getMessage());
+            return array();
+        }
+    }
+    
+    // Analyze content for topic-specific tags
+    function thrive_mautic_analyze_content($title, $content) {
+        try {
+            $tags = array();
+            $text = strtolower($title . ' ' . $content);
+            
+            // Define topic keywords and their corresponding tags
+            $topic_keywords = array(
+                'ai' => array('artificial-intelligence', 'ai-tools', 'machine-learning'),
+                'artificial intelligence' => array('artificial-intelligence', 'ai-tools', 'machine-learning'),
+                'machine learning' => array('machine-learning', 'ai-tools', 'data-science'),
+                'llm' => array('large-language-models', 'llm-tools', 'gpt'),
+                'large language model' => array('large-language-models', 'llm-tools', 'gpt'),
+                'gpt' => array('gpt', 'openai', 'llm-tools'),
+                'chatgpt' => array('chatgpt', 'openai', 'llm-tools'),
+                'seo' => array('search-optimization', 'seo-tools', 'marketing'),
+                'search engine optimization' => array('search-optimization', 'seo-tools', 'marketing'),
+                'marketing' => array('digital-marketing', 'marketing-tools', 'strategy'),
+                'automation' => array('workflow-automation', 'productivity', 'tools'),
+                'productivity' => array('productivity-tools', 'efficiency', 'workflow'),
+                'wordpress' => array('wordpress-tools', 'cms', 'website'),
+                'cms' => array('content-management', 'wordpress-tools', 'website'),
+                'analytics' => array('data-analytics', 'tracking', 'insights'),
+                'data' => array('data-analysis', 'analytics', 'insights'),
+                'tutorial' => array('tutorial-content', 'how-to', 'educational'),
+                'guide' => array('guide-content', 'how-to', 'educational'),
+                'beginner' => array('beginner-friendly', 'intro', 'basics'),
+                'advanced' => array('advanced-topic', 'expert', 'professional'),
+                'free' => array('free-resource', 'no-cost', 'accessible'),
+                'premium' => array('premium-content', 'paid', 'exclusive')
+            );
+            
+            // Check for topic keywords
+            foreach ($topic_keywords as $keyword => $tag_list) {
+                if (strpos($text, $keyword) !== false) {
+                    $tags = array_merge($tags, $tag_list);
+                }
+            }
+            
+            // Check for specific tool mentions
+            $tool_keywords = array(
+                'google' => 'google-tools',
+                'microsoft' => 'microsoft-tools',
+                'openai' => 'openai-tools',
+                'anthropic' => 'anthropic-tools',
+                'claude' => 'claude-tools',
+                'bard' => 'bard-tools',
+                'notion' => 'notion-tools',
+                'slack' => 'slack-tools',
+                'zapier' => 'zapier-tools',
+                'hubspot' => 'hubspot-tools',
+                'salesforce' => 'salesforce-tools'
+            );
+            
+            foreach ($tool_keywords as $tool => $tag) {
+                if (strpos($text, $tool) !== false) {
+                    $tags[] = $tag;
+                }
+            }
+            
+            // Check for content format
+            $format_keywords = array(
+                'video' => 'video-content',
+                'tutorial' => 'tutorial-format',
+                'guide' => 'guide-format',
+                'checklist' => 'checklist-format',
+                'template' => 'template-format',
+                'ebook' => 'ebook-format',
+                'pdf' => 'pdf-format',
+                'infographic' => 'infographic-format'
+            );
+            
+            foreach ($format_keywords as $format => $tag) {
+                if (strpos($text, $format) !== false) {
+                    $tags[] = $tag;
+                }
+            }
+            
+            // Remove duplicates
+            $tags = array_unique($tags);
+            
+            return $tags;
+            
+        } catch (Exception $e) {
+            thrive_mautic_log('error', 'Content analysis failed: ' . $e->getMessage());
             return array();
         }
     }
@@ -4836,6 +5025,22 @@ try {
                 // Add to segment if specified
                 if (!empty($submission->segment_id)) {
                     thrive_mautic_add_to_segment($contact_id, $submission->segment_id);
+                }
+                
+                // Add tags if specified
+                if (!empty($submission->custom_tags)) {
+                    $tags = thrive_mautic_generate_automatic_tags(
+                        $submission->form_type,
+                        array(
+                            'utm_source' => $submission->utm_source,
+                            'utm_medium' => $submission->utm_medium,
+                            'utm_campaign' => $submission->utm_campaign,
+                            'utm_content' => $submission->utm_content,
+                            'utm_term' => $submission->utm_term
+                        ),
+                        $submission->custom_tags
+                    );
+                    thrive_mautic_add_tags_to_contact($contact_id, $tags);
                 }
                 
                 // Update submission as successful
