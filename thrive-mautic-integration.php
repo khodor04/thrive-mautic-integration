@@ -3,7 +3,7 @@
  * Plugin Name: Thrive-Mautic Integration
  * Plugin URI: https://yourwebsite.com/thrive-mautic-integration
  * Description: Thrive Themes Integration With Mautic
- * Version: 5.8.8
+ * Version: 5.8.9
  * Author: Khodor Ghalayini
  * Author URI: https://yourwebsite.com
  * License: GPL v2 or later
@@ -18,7 +18,7 @@ if (!defined('ABSPATH')) {
 // WRAP EVERYTHING IN TRY-CATCH TO PREVENT CRASHES
 try {
     // Define plugin constants
-    define('THRIVE_MAUTIC_VERSION', '5.8.8');
+    define('THRIVE_MAUTIC_VERSION', '5.8.9');
     define('THRIVE_MAUTIC_PLUGIN_FILE', __FILE__);
     define('THRIVE_MAUTIC_PLUGIN_DIR', plugin_dir_path(__FILE__));
 
@@ -2077,6 +2077,12 @@ try {
                         echo '<div class="wrap">';
                         echo '<h1>Thrive Forms Analysis</h1>';
                         
+                        // Add Discover Forms button
+                        echo '<div class="thrive-mautic-actions" style="margin-bottom: 20px;">';
+                        echo '<button id="discover-forms-btn" class="button button-primary">🔍 Discover Forms</button>';
+                        echo '<span id="discover-status" style="margin-left: 10px;"></span>';
+                        echo '</div>';
+                        
                         // Get all forms from database
                         global $wpdb;
                         $forms = thrive_mautic_analyze_all_forms();
@@ -2299,6 +2305,32 @@ try {
                                         }
                                     });
                                 }
+                            });
+                            
+                            // Discover Forms functionality
+                            $("#discover-forms-btn").click(function() {
+                                var $btn = $(this);
+                                var $status = $("#discover-status");
+                                
+                                $btn.prop("disabled", true).text("🔍 Discovering...");
+                                $status.text("Scanning your website for Thrive forms...");
+                                
+                                $.post(ajaxurl, {
+                                    action: "thrive_mautic_discover_forms"
+                                }, function(response) {
+                                    if (response.success) {
+                                        $status.html("<span style='color: #28a745;'>✅ " + response.data.message + "</span>");
+                                        setTimeout(function() {
+                                            location.reload();
+                                        }, 2000);
+                                    } else {
+                                        $status.html("<span style='color: #dc3545;'>❌ Error: " + response.data + "</span>");
+                                    }
+                                    $btn.prop("disabled", false).text("🔍 Discover Forms");
+                                }).fail(function() {
+                                    $status.html("<span style='color: #dc3545;'>❌ Request failed. Please try again.</span>");
+                                    $btn.prop("disabled", false).text("🔍 Discover Forms");
+                                });
                             });
                         });
                         </script>';
@@ -3446,6 +3478,171 @@ try {
             thrive_mautic_log('error', 'Auto-configure form failed: ' . $e->getMessage());
         }
     }
+    
+    // Form Discovery System - Scan all pages for Thrive forms
+    function thrive_mautic_discover_forms() {
+        try {
+            thrive_mautic_log('info', 'Starting form discovery scan...');
+            
+            $discovered_forms = array();
+            
+            // 1. Scan all published pages and posts
+            $pages = get_posts(array(
+                'post_type' => array('page', 'post'),
+                'post_status' => 'publish',
+                'numberposts' => -1,
+                'meta_query' => array(
+                    array(
+                        'key' => '_tve_has_shortcode',
+                        'value' => '1',
+                        'compare' => '='
+                    )
+                )
+            ));
+            
+            foreach ($pages as $page) {
+                $page_forms = thrive_mautic_scan_page_for_forms($page);
+                $discovered_forms = array_merge($discovered_forms, $page_forms);
+            }
+            
+            // 2. Scan Thrive Leads forms
+            $leads_forms = thrive_mautic_discover_thrive_leads_forms();
+            $discovered_forms = array_merge($discovered_forms, $leads_forms);
+            
+            // 3. Scan Thrive Quiz forms
+            $quiz_forms = thrive_mautic_discover_thrive_quiz_forms();
+            $discovered_forms = array_merge($discovered_forms, $quiz_forms);
+            
+            // 4. Auto-configure discovered forms
+            foreach ($discovered_forms as $form) {
+                $existing_config = thrive_mautic_get_form_config($form['form_id']);
+                if (!$existing_config) {
+                    thrive_mautic_auto_configure_form($form['form_id'], $form['form_type']);
+                }
+            }
+            
+            thrive_mautic_log('info', 'Form discovery completed. Found ' . count($discovered_forms) . ' forms.');
+            
+            return $discovered_forms;
+            
+        } catch (Exception $e) {
+            thrive_mautic_log('error', 'Form discovery failed: ' . $e->getMessage());
+            return array();
+        }
+    }
+    
+    // Scan individual page for forms
+    function thrive_mautic_scan_page_for_forms($page) {
+        $forms = array();
+        
+        try {
+            // Get page content
+            $content = get_post_field('post_content', $page->ID);
+            $title = get_the_title($page->ID);
+            $url = get_permalink($page->ID);
+            
+            // Look for Thrive Architect forms
+            if (preg_match_all('/\[thrive_2step[^\]]*\]/i', $content, $matches)) {
+                foreach ($matches[0] as $shortcode) {
+                    if (preg_match('/id=["\']([^"\']+)["\']/', $shortcode, $id_matches)) {
+                        $form_id = $id_matches[1];
+                        $forms[] = array(
+                            'form_id' => $form_id,
+                            'form_type' => 'thrive_architect',
+                            'location' => $title . ' (' . $url . ')',
+                            'fields' => array('email', 'name'),
+                            'has_segment_field' => false,
+                            'has_tags_field' => false
+                        );
+                    }
+                }
+            }
+            
+            // Look for Thrive Lightbox forms
+            if (preg_match_all('/\[thrive_lightbox[^\]]*\]/i', $content, $matches)) {
+                foreach ($matches[0] as $shortcode) {
+                    if (preg_match('/id=["\']([^"\']+)["\']/', $shortcode, $id_matches)) {
+                        $form_id = $id_matches[1];
+                        $forms[] = array(
+                            'form_id' => $form_id,
+                            'form_type' => 'thrive_lightbox',
+                            'location' => $title . ' (' . $url . ')',
+                            'fields' => array('email', 'name'),
+                            'has_segment_field' => false,
+                            'has_tags_field' => false
+                        );
+                    }
+                }
+            }
+            
+        } catch (Exception $e) {
+            thrive_mautic_log('error', 'Error scanning page ' . $page->ID . ': ' . $e->getMessage());
+        }
+        
+        return $forms;
+    }
+    
+    // Discover Thrive Leads forms
+    function thrive_mautic_discover_thrive_leads_forms() {
+        $forms = array();
+        
+        try {
+            global $wpdb;
+            
+            // Get Thrive Leads forms
+            $leads_forms = $wpdb->get_results("
+                SELECT * FROM {$wpdb->prefix}tve_leads_forms 
+                WHERE status = 1
+            ");
+            
+            foreach ($leads_forms as $form) {
+                $forms[] = array(
+                    'form_id' => $form->id,
+                    'form_type' => 'thrive_leads',
+                    'location' => 'Thrive Leads: ' . $form->name,
+                    'fields' => array('email', 'name'),
+                    'has_segment_field' => false,
+                    'has_tags_field' => false
+                );
+            }
+            
+        } catch (Exception $e) {
+            thrive_mautic_log('error', 'Error discovering Thrive Leads forms: ' . $e->getMessage());
+        }
+        
+        return $forms;
+    }
+    
+    // Discover Thrive Quiz forms
+    function thrive_mautic_discover_thrive_quiz_forms() {
+        $forms = array();
+        
+        try {
+            global $wpdb;
+            
+            // Get Thrive Quiz forms
+            $quiz_forms = $wpdb->get_results("
+                SELECT * FROM {$wpdb->prefix}tqb_quiz 
+                WHERE status = 1
+            ");
+            
+            foreach ($quiz_forms as $quiz) {
+                $forms[] = array(
+                    'form_id' => 'quiz-' . $quiz->id,
+                    'form_type' => 'thrive_quiz',
+                    'location' => 'Thrive Quiz: ' . $quiz->name,
+                    'fields' => array('email', 'name'),
+                    'has_segment_field' => false,
+                    'has_tags_field' => false
+                );
+            }
+            
+        } catch (Exception $e) {
+            thrive_mautic_log('error', 'Error discovering Thrive Quiz forms: ' . $e->getMessage());
+        }
+        
+        return $forms;
+    }
 
 
     // AJAX handler for saving form configuration
@@ -3516,6 +3713,28 @@ try {
             } else {
                 wp_send_json_error('Failed to delete form configuration');
             }
+            
+        } catch (Exception $e) {
+            wp_send_json_error('Error: ' . $e->getMessage());
+        }
+    });
+    
+    // AJAX handler for discovering forms
+    add_action('wp_ajax_thrive_mautic_discover_forms', function() {
+        try {
+            // Check user capabilities
+            if (!current_user_can('manage_options')) {
+                wp_send_json_error('Insufficient permissions');
+                return;
+            }
+            
+            $discovered_forms = thrive_mautic_discover_forms();
+            
+            wp_send_json_success(array(
+                'message' => 'Form discovery completed! Found ' . count($discovered_forms) . ' forms.',
+                'forms_count' => count($discovered_forms),
+                'forms' => $discovered_forms
+            ));
             
         } catch (Exception $e) {
             wp_send_json_error('Error: ' . $e->getMessage());
@@ -4856,6 +5075,9 @@ try {
             if (!wp_next_scheduled('thrive_mautic_sync_contacts')) {
                 wp_schedule_event(time(), 'every_15_minutes', 'thrive_mautic_sync_contacts');
             }
+            
+            // Discover forms on activation
+            thrive_mautic_discover_forms();
             
             // Flush rewrite rules for dynamic thank you pages
             flush_rewrite_rules();
