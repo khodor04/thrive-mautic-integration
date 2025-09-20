@@ -3,7 +3,7 @@
  * Plugin Name: Thrive-Mautic Integration
  * Plugin URI: https://yourwebsite.com/thrive-mautic-integration
  * Description: Thrive Themes Integration With Mautic
- * Version: 5.8.7
+ * Version: 5.8.8
  * Author: Khodor Ghalayini
  * Author URI: https://yourwebsite.com
  * License: GPL v2 or later
@@ -18,7 +18,7 @@ if (!defined('ABSPATH')) {
 // WRAP EVERYTHING IN TRY-CATCH TO PREVENT CRASHES
 try {
     // Define plugin constants
-    define('THRIVE_MAUTIC_VERSION', '5.8.7');
+    define('THRIVE_MAUTIC_VERSION', '5.8.8');
     define('THRIVE_MAUTIC_PLUGIN_FILE', __FILE__);
     define('THRIVE_MAUTIC_PLUGIN_DIR', plugin_dir_path(__FILE__));
 
@@ -3335,6 +3335,12 @@ try {
             // Get form configuration
             $form_config = thrive_mautic_get_form_config($data['form_id']);
             
+            // If no configuration exists, create a default one
+            if (!$form_config) {
+                thrive_mautic_auto_configure_form($data['form_id'], $data['form_type']);
+                $form_config = thrive_mautic_get_form_config($data['form_id']);
+            }
+            
             // Use stored configuration if available, otherwise use form data
             $segment_id = $data['segment_id'];
             $custom_tags = isset($data['custom_tags']) ? sanitize_text_field($data['custom_tags']) : '';
@@ -3377,6 +3383,67 @@ try {
             
         } catch (Exception $e) {
             thrive_mautic_log('error', 'Queue submission error: ' . $e->getMessage());
+        }
+    }
+    
+    // Auto-configure form when first submitted
+    function thrive_mautic_auto_configure_form($form_id, $form_type) {
+        try {
+            // Generate smart defaults based on form type and context
+            $default_segment = '';
+            $default_tags = '';
+            
+            // Smart segmentation based on form type
+            switch ($form_type) {
+                case 'thrive_quiz':
+                    $default_segment = 'quiz-completion';
+                    $default_tags = 'quiz,engaged,interactive';
+                    break;
+                case 'thrive_quiz_opt_in':
+                    $default_segment = 'quiz-lead';
+                    $default_tags = 'quiz-lead,high-intent,engaged';
+                    break;
+                case 'thrive_leads':
+                case 'thrive_leads_ajax':
+                case 'thrive_leads_contact':
+                    $default_segment = 'lead-capture';
+                    $default_tags = 'lead,interested,prospect';
+                    break;
+                case 'thrive_lightbox':
+                    $default_segment = 'lightbox-lead';
+                    $default_tags = 'lightbox,popup-lead,engaged';
+                    break;
+                case 'thrive_architect':
+                    $default_segment = 'contact-form';
+                    $default_tags = 'contact,inquiry,high-intent';
+                    break;
+                default:
+                    $default_segment = sanitize_title($form_type);
+                    $default_tags = 'form-submission,lead';
+            }
+            
+            // Try to get more context from form ID
+            if (strpos($form_id, 'contact') !== false) {
+                $default_segment = 'contact-form';
+                $default_tags = 'contact,inquiry,high-intent';
+            } elseif (strpos($form_id, 'newsletter') !== false) {
+                $default_segment = 'newsletter-signup';
+                $default_tags = 'newsletter,subscriber,content-interested';
+            } elseif (strpos($form_id, 'download') !== false) {
+                $default_segment = 'lead-magnet';
+                $default_tags = 'lead-magnet,content-downloader,interested';
+            } elseif (strpos($form_id, 'quiz') !== false) {
+                $default_segment = 'quiz-lead';
+                $default_tags = 'quiz,engaged,interactive';
+            }
+            
+            // Save the auto-configuration
+            thrive_mautic_save_form_config($form_id, $form_type, $default_segment, $default_tags, 1);
+            
+            thrive_mautic_log('info', 'Auto-configured form: ' . $form_id . ' with segment: ' . $default_segment . ' and tags: ' . $default_tags);
+            
+        } catch (Exception $e) {
+            thrive_mautic_log('error', 'Auto-configure form failed: ' . $e->getMessage());
         }
     }
 
