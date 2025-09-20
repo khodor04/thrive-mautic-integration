@@ -3,7 +3,7 @@
  * Plugin Name: Thrive-Mautic Integration
  * Plugin URI: https://yourwebsite.com/thrive-mautic-integration
  * Description: Thrive Themes Integration With Mautic
- * Version: 5.8.9
+ * Version: 5.9.0
  * Author: Khodor Ghalayini
  * Author URI: https://yourwebsite.com
  * License: GPL v2 or later
@@ -18,7 +18,7 @@ if (!defined('ABSPATH')) {
 // WRAP EVERYTHING IN TRY-CATCH TO PREVENT CRASHES
 try {
     // Define plugin constants
-    define('THRIVE_MAUTIC_VERSION', '5.8.9');
+    define('THRIVE_MAUTIC_VERSION', '5.9.0');
     define('THRIVE_MAUTIC_PLUGIN_FILE', __FILE__);
     define('THRIVE_MAUTIC_PLUGIN_DIR', plugin_dir_path(__FILE__));
 
@@ -3741,6 +3741,15 @@ try {
         }
     });
     
+    // Hook for scheduled form discovery
+    add_action('thrive_mautic_discover_forms_hook', function() {
+        try {
+            thrive_mautic_discover_forms();
+        } catch (Exception $e) {
+            thrive_mautic_log('error', 'Scheduled form discovery failed: ' . $e->getMessage());
+        }
+    });
+    
     // AJAX handler for force update check
     add_action('wp_ajax_thrive_mautic_force_update_check', function() {
         try {
@@ -5076,8 +5085,8 @@ try {
                 wp_schedule_event(time(), 'every_15_minutes', 'thrive_mautic_sync_contacts');
             }
             
-            // Discover forms on activation
-            thrive_mautic_discover_forms();
+            // Schedule form discovery to run after WordPress is fully loaded
+            wp_schedule_single_event(time() + 10, 'thrive_mautic_discover_forms_hook');
             
             // Flush rewrite rules for dynamic thank you pages
             flush_rewrite_rules();
